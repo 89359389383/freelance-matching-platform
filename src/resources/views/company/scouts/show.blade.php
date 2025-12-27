@@ -253,7 +253,7 @@
                                     <form action="{{ route('company.messages.destroy', ['message' => $message->id]) }}" method="POST" style="display:inline;" onsubmit="return confirm('このメッセージを削除しますか？');">
                                         @csrf
                                         @method('DELETE')
-                                        <a class="del" href="#" onclick="event.preventDefault(); this.closest('form').submit();">削除</a>
+                                        <button type="submit" class="del" style="background:none; border:none; padding:0; margin-left:0.5rem; font-size:0.8rem; color:#b31d28; font-weight:900; cursor:pointer; text-decoration:none;">削除</button>
                                     </form>
                                 @endif
                             </div>

@@ -158,4 +158,7 @@ Route::middleware(['auth:company', 'company'])->group(function () {
 
     // メッセージ削除
     Route::delete('/company/messages/{message}', [CompanyMessageController::class, 'destroy'])->name('company.messages.destroy');
+
+    // 応募ステータス更新
+    Route::patch('/company/threads/{thread}/application-status', [CompanyMessageController::class, 'updateApplicationStatus'])->name('company.threads.application-status.update');
 });

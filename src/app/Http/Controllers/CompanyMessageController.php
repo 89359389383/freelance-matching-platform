@@ -46,6 +46,8 @@ class CompanyMessageController extends Controller
             'freelancer',
             // 案件（応募スレッドなら存在する）
             'job',
+            // 企業情報
+            'company',
             // 会話履歴
             'messages',
         ]);
@@ -205,5 +207,64 @@ class CompanyMessageController extends Controller
         return redirect()
             ->route('company.threads.show', ['thread' => $thread])
             ->with('success', 'メッセージを削除しました');
+    }
+
+    /**
+     * 応募ステータスを更新する
+     */
+    public function updateApplicationStatus(Request $request, Thread $thread)
+    {
+        // 認証ユーザーを取得する
+        $user = Auth::user();
+
+        // 企業以外は拒否する
+        if ($user->role !== 'company') {
+            abort(403);
+        }
+
+        // companyプロフィールを取得する
+        $company = $user->company;
+
+        // companyプロフィールが無い場合は先に登録へ誘導する
+        if ($company === null) {
+            return redirect('/company/profile')->with('error', '先に企業プロフィールを登録してください');
+        }
+
+        // スレッドの当事者チェック
+        if ((int) $thread->company_id !== (int) $company->id) {
+            abort(403);
+        }
+
+        // 応募スレッドでない場合は拒否（job_idがnullの場合はスカウトスレッド）
+        if ($thread->job_id === null) {
+            abort(403);
+        }
+
+        // ステータスをバリデーションする
+        $request->validate([
+            'status' => 'required|in:0,1,2',
+        ]);
+
+        // 応募を取得する
+        $application = Application::query()
+            ->where('job_id', $thread->job_id)
+            ->where('freelancer_id', $thread->freelancer_id)
+            ->first();
+
+        // 応募が存在しない場合はエラー
+        if ($application === null) {
+            return redirect()
+                ->route('company.threads.show', ['thread' => $thread])
+                ->with('error', '応募情報が見つかりません');
+        }
+
+        // ステータスを更新する
+        $application->status = (int) $request->status;
+        $application->save();
+
+        // thread.show へ戻す
+        return redirect()
+            ->route('company.threads.show', ['thread' => $thread])
+            ->with('success', 'ステータスを更新しました');
     }
 }

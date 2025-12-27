@@ -44,7 +44,7 @@ class CompanyApplicationController extends Controller
                 $q->where('company_id', $company->id);
             })
             // 表示に必要なリレーションを先読みする
-            ->with(['job', 'freelancer']);
+            ->with(['job.company', 'freelancer']);
 
         // status に応じて絞り込む
         if ($status === 'closed') {
@@ -94,12 +94,40 @@ class CompanyApplicationController extends Controller
             return $app;
         });
 
+        // ヘッダー用の未読数を計算する
+        // 応募に関連するthreadの未読数（企業側）
+        $unreadApplicationCount = Thread::query()
+            ->where('company_id', $company->id)
+            ->whereNotNull('job_id') // 応募はjob_idが必須
+            ->where('is_unread_for_company', true)
+            ->count();
+
+        // スカウトに関連するthreadの未読数（企業側、job_idがnullのもの）
+        $unreadScoutCount = Thread::query()
+            ->where('company_id', $company->id)
+            ->whereNull('job_id') // スカウトはjob_idがnull
+            ->where('is_unread_for_company', true)
+            ->count();
+
+        // ユーザー名の最初の文字を取得（アバター表示用）
+        $userInitial = '企';
+        if ($company !== null && !empty($company->name)) {
+            $userInitial = mb_substr($company->name, 0, 1);
+        } elseif (!empty($user->email)) {
+            $userInitial = mb_substr($user->email, 0, 1);
+        }
+
         // 一覧ビューへ返す
         return view('company.applications.index', [
             // 表示用応募一覧
             'applications' => $applications,
             // タブ制御用
             'status' => $status,
+            // ヘッダー用未読数
+            'unreadApplicationCount' => $unreadApplicationCount,
+            'unreadScoutCount' => $unreadScoutCount,
+            // ユーザー情報
+            'userInitial' => $userInitial,
         ]);
     }
 }

@@ -267,17 +267,23 @@
         <div class="panel" aria-label="応募チャット">
             <div class="chat-head">
                 <div style="min-width:0;">
-                    <div class="chat-title">ECサイト機能拡張プロジェクト</div>
-                    <div class="chat-sub">応募者：山田 太郎 / 企業：株式会社AITECH</div>
+                    <div class="chat-title">{{ $thread->job ? $thread->job->title : 'スカウト' }}</div>
+                    <div class="chat-sub">応募者：{{ $thread->freelancer->display_name ?? '不明' }} / 企業：{{ $thread->company->name ?? '不明' }}</div>
                 </div>
                 <div class="chat-tools">
-                    <label style="font-weight:900; color:#586069;">応募ステータス</label>
-                    <select class="select" id="statusSelect" aria-label="応募ステータス">
-                        <option value="new" selected>未対応</option>
-                        <option value="progress">対応中</option>
-                        <option value="closed">クローズ（終了）</option>
-                    </select>
-                    <a class="btn btn-secondary" href="#" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">一覧へ</a>
+                    @if($application)
+                    <form method="POST" action="{{ route('company.threads.application-status.update', ['thread' => $thread]) }}" id="statusForm" style="display: inline-flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; justify-content: flex-end;">
+                        @csrf
+                        @method('PATCH')
+                        <label style="font-weight:900; color:#586069;">応募ステータス</label>
+                        <select class="select" id="statusSelect" name="status" aria-label="応募ステータス">
+                            <option value="0" {{ $application->status === \App\Models\Application::STATUS_PENDING ? 'selected' : '' }}>未対応</option>
+                            <option value="1" {{ $application->status === \App\Models\Application::STATUS_IN_PROGRESS ? 'selected' : '' }}>対応中</option>
+                            <option value="2" {{ $application->status === \App\Models\Application::STATUS_CLOSED ? 'selected' : '' }}>クローズ（終了）</option>
+                        </select>
+                    </form>
+                    @endif
+                    <a class="btn btn-secondary" href="{{ route('company.applications.index') }}" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">一覧へ</a>
                 </div>
             </div>
 
@@ -286,45 +292,57 @@
             </div>
 
             <div class="chat-body" id="chatBody">
+                @php
+                    // 削除されていないメッセージのみを取得
+                    $activeMessages = $messages->whereNull('deleted_at')->sortBy('sent_at');
+                    // 最初のメッセージが応募メッセージかどうかをチェック
+                    $firstMessage = $activeMessages->first();
+                    $isFirstMessageApplication = $firstMessage && $firstMessage->sender_type === 'freelancer' && $application;
+                @endphp
+
+                @if($isFirstMessageApplication)
                 <div class="system">応募メッセージ（最初の1通）</div>
+                @endif
 
-                <div class="msg-row">
-                    <div class="bubble">
-                        はじめまして。Laravel/VueでのEC改善経験があります。<br>
-                        週20〜30hで参画可能です。要件整理から実装・運用改善まで対応します。<br>
-                        よろしくお願いします。
-                        <div class="meta">山田 太郎 ・ 2025/12/20 10:14</div>
-                    </div>
-                </div>
-
-                <div class="msg-row me">
-                    <div class="bubble">
-                        ご応募ありがとうございます！まずは現状の課題感を共有します。<br>
-                        管理画面の速度改善と、商品登録フローの短縮が主な目的です。
-                        <div class="meta">あなた（企業）・ 2025/12/20 10:30 <a class="del" href="#" onclick="return false;">削除</a></div>
-                    </div>
-                </div>
-
-                <div class="msg-row">
-                    <div class="bubble">
-                        承知しました。現状のボトルネック確認（SQL/キャッシュ/画面設計）から入り、<br>
-                        影響範囲を見ながら段階的に改善する方針が良いと思います。
-                        <div class="meta">山田 太郎 ・ 2025/12/20 10:38</div>
-                    </div>
-                </div>
-
-                <div class="msg-row me">
-                    <div class="bubble">
-                        ありがとうございます。まずは今週、画面とDBの現状を一緒に確認しましょう。<br>
-                        進め方の提案もいただけると助かります。
-                        <div class="meta">あなた（企業）・ 2025/12/20 10:45 <a class="del" href="#" onclick="return false;">削除</a></div>
-                    </div>
-                </div>
+                @foreach($activeMessages as $message)
+                    @if($message->sender_type === 'company')
+                        <div class="msg-row me">
+                            <div class="bubble">
+                                {!! nl2br(e($message->body)) !!}
+                                <div class="meta">
+                                    あなた（企業）・ {{ $message->sent_at->format('Y/m/d H:i') }}
+                                    @php
+                                        // 最新メッセージかどうかをチェック
+                                        $latestMessage = $activeMessages->last();
+                                        $canDelete = $latestMessage && $latestMessage->id === $message->id;
+                                    @endphp
+                                    @if($canDelete)
+                                    <form action="{{ route('company.messages.destroy', ['message' => $message]) }}" method="POST" style="display:inline;" onsubmit="return confirm('このメッセージを削除しますか？');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="del" style="background:none; border:none; padding:0; margin-left:0.5rem; font-size:0.8rem; color:#b31d28; font-weight:900; cursor:pointer; text-decoration:none;">削除</button>
+                                    </form>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        <div class="msg-row">
+                            <div class="bubble">
+                                {!! nl2br(e($message->body)) !!}
+                                <div class="meta">{{ $thread->freelancer->display_name ?? '不明' }} ・ {{ $message->sent_at->format('Y/m/d H:i') }}</div>
+                            </div>
+                        </div>
+                    @endif
+                @endforeach
             </div>
 
             <div class="chat-foot">
-                <input class="input" id="messageInput" type="text" placeholder="メッセージを入力（クローズ時は送信不可）" aria-label="メッセージ入力">
-                <button class="btn btn-primary" id="sendBtn" type="button">送信</button>
+                <form method="POST" action="{{ route('company.threads.messages.store', ['thread' => $thread]) }}" id="messageForm" style="display: flex; gap: 0.75rem; align-items: center; width: 100%;">
+                    @csrf
+                    <input class="input" id="messageInput" name="content" type="text" placeholder="メッセージを入力（クローズ時は送信不可）" aria-label="メッセージ入力" required>
+                    <button class="btn btn-primary" id="sendBtn" type="submit">送信</button>
+                </form>
             </div>
         </div>
     </main>
@@ -346,18 +364,26 @@
     <script>
         (function () {
             const status = document.getElementById('statusSelect');
+            const statusForm = document.getElementById('statusForm');
             const input = document.getElementById('messageInput');
             const btn = document.getElementById('sendBtn');
             if (!status || !input || !btn) return;
 
             const apply = () => {
-                const closed = status.value === 'closed';
+                const closed = status.value === '2';
                 input.disabled = closed;
                 btn.disabled = closed;
                 btn.style.opacity = closed ? '0.5' : '1';
                 btn.style.pointerEvents = closed ? 'none' : 'auto';
             };
-            status.addEventListener('change', apply);
+            
+            // ステータス変更時に自動送信
+            if (statusForm) {
+                status.addEventListener('change', () => {
+                    statusForm.submit();
+                });
+            }
+            
             apply();
         })();
     </script>

@@ -150,6 +150,8 @@
             font-weight: 900;
             cursor: pointer;
             transition: all 0.15s ease;
+            text-decoration: none;
+            display: inline-block;
         }
         .tab:hover { background: #f6f8fa; transform: translateY(-1px); }
         .tab.is-active {
@@ -278,12 +280,22 @@
             <nav class="nav-links">
                 <a href="{{ route('company.freelancers.index') }}" class="nav-link">フリーランス一覧</a>
                 <a href="{{ route('company.jobs.index') }}" class="nav-link">案件一覧</a>
-                <a href="{{ route('company.applications.index') }}" class="nav-link has-badge active">応募された案件 <span class="badge">3</span></a>
-                <a href="{{ route('company.scouts.index') }}" class="nav-link has-badge">スカウト <span class="badge">1</span></a>
+                <a href="{{ route('company.applications.index') }}" class="nav-link has-badge active">
+                    応募された案件
+                    @if(($unreadApplicationCount ?? 0) > 0)
+                        <span class="badge">{{ $unreadApplicationCount }}</span>
+                    @endif
+                </a>
+                <a href="{{ route('company.scouts.index') }}" class="nav-link has-badge">
+                    スカウト
+                    @if(($unreadScoutCount ?? 0) > 0)
+                        <span class="badge">{{ $unreadScoutCount }}</span>
+                    @endif
+                </a>
             </nav>
             <div class="user-menu">
                 <div class="dropdown" id="userDropdown">
-                    <button class="user-avatar" id="userDropdownToggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userDropdownMenu">企</button>
+                    <button class="user-avatar" id="userDropdownToggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userDropdownMenu">{{ $userInitial ?? '企' }}</button>
                     <div class="dropdown-content" id="userDropdownMenu" role="menu" aria-label="ユーザーメニュー">
                         <a href="{{ route('company.profile.settings') }}" class="dropdown-item" role="menuitem">プロフィール設定</a>
                         <div class="dropdown-divider"></div>
@@ -301,100 +313,168 @@
         <h1 class="page-title">応募された案件</h1>
 
         <div class="tabs" role="tablist" aria-label="応募タブ">
-            <button class="tab is-active" type="button" role="tab" aria-selected="true" aria-controls="tab-open" id="tabOpenBtn">応募中</button>
-            <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-closed" id="tabClosedBtn">終了</button>
+            <a href="{{ route('company.applications.index', ['status' => 'pending']) }}" class="tab {{ $status === 'pending' ? 'is-active' : '' }}" role="tab" aria-selected="{{ $status === 'pending' ? 'true' : 'false' }}" aria-controls="tab-open" id="tabOpenBtn">応募中</a>
+            <a href="{{ route('company.applications.index', ['status' => 'closed']) }}" class="tab {{ $status === 'closed' ? 'is-active' : '' }}" role="tab" aria-selected="{{ $status === 'closed' ? 'true' : 'false' }}" aria-controls="tab-closed" id="tabClosedBtn">終了</a>
         </div>
 
-        <section id="tab-open" role="tabpanel" aria-labelledby="tabOpenBtn">
+        <section id="tab-open" role="tabpanel" aria-labelledby="tabOpenBtn" {{ $status === 'closed' ? 'hidden' : '' }}>
             <div class="list">
-                <article class="card">
-                    <div class="top">
-                        <div style="min-width:0;">
-                            <div class="title">ECサイト機能拡張プロジェクト</div>
-                            <div class="sub">株式会社AITECH</div>
-                            <div class="row" style="margin-top:0.75rem;">
-                                <span class="pill status">応募ステータス：未対応</span>
-                                <span class="pill unread">未読 2</span>
+                @forelse($applications as $application)
+                    @php
+                        $job = $application->job;
+                        $freelancer = $application->freelancer;
+                        $company = $job->company ?? null;
+                        
+                        // ステータス表示用
+                        $statusText = '';
+                        if ($application->status === \App\Models\Application::STATUS_PENDING) {
+                            $statusText = '未対応';
+                        } elseif ($application->status === \App\Models\Application::STATUS_IN_PROGRESS) {
+                            $statusText = '対応中';
+                        } else {
+                            $statusText = 'クローズ';
+                        }
+                        
+                        // 報酬表示用
+                        $rewardText = '';
+                        if ($job->reward_type === 'monthly') {
+                            $rewardText = number_format($job->min_rate) . '〜' . number_format($job->max_rate) . '万';
+                        } else {
+                            $rewardText = number_format($job->min_rate) . '〜' . number_format($job->max_rate) . '円/時';
+                        }
+                        
+                        // フリーランス名の最初の文字（アバター用）
+                        $freelancerInitial = mb_substr($freelancer->display_name ?? '未', 0, 1);
+                        
+                        // チャットURL
+                        $chatUrl = $application->thread 
+                            ? route('company.threads.show', ['thread' => $application->thread])
+                            : '#';
+                    @endphp
+                    <article class="card">
+                        <div class="top">
+                            <div style="min-width:0;">
+                                <div class="title">{{ $job->title }}</div>
+                                <div class="sub">{{ $company->name ?? '企業名不明' }}</div>
+                                <div class="row" style="margin-top:0.75rem;">
+                                    <span class="pill status">応募ステータス：{{ $statusText }}</span>
+                                    @if($application->is_unread ?? false)
+                                        <span class="pill unread">未読</span>
+                                    @else
+                                        <span class="pill">未読なし</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="row" aria-label="応募者">
+                                <span class="avatar" aria-hidden="true">{{ $freelancerInitial }}</span>
+                                <span style="font-weight:900;">{{ $freelancer->display_name ?? '名前不明' }}</span>
                             </div>
                         </div>
-                        <div class="row" aria-label="応募者">
-                            <span class="avatar" aria-hidden="true">山</span>
-                            <span style="font-weight:900;">山田 太郎</span>
+                        <div class="desc">{{ Str::limit($application->message ?? $job->description, 100) }}</div>
+                        <div class="meta" aria-label="案件情報">
+                            <div class="meta-item"><div class="meta-label">報酬</div><div class="meta-value">{{ $rewardText }}</div></div>
+                            <div class="meta-item"><div class="meta-label">稼働</div><div class="meta-value">{{ $job->work_time_text }}</div></div>
+                            @if($job->required_skills_text)
+                                <div class="meta-item"><div class="meta-label">スキル</div><div class="meta-value">{{ Str::limit($job->required_skills_text, 30) }}</div></div>
+                            @endif
                         </div>
-                    </div>
-                    <div class="desc">既存ECの改善・機能追加。管理画面の刷新、商品管理の最適化を進めます。</div>
-                    <div class="meta" aria-label="案件情報">
-                        <div class="meta-item"><div class="meta-label">報酬</div><div class="meta-value">50〜70万</div></div>
-                        <div class="meta-item"><div class="meta-label">稼働</div><div class="meta-value">週20〜30h</div></div>
-                        <div class="meta-item"><div class="meta-label">期間</div><div class="meta-value">3ヶ月</div></div>
-                        <div class="meta-item"><div class="meta-label">スキル</div><div class="meta-value">Laravel</div></div>
-                    </div>
-                    <div class="actions">
-                        <a href="#" class="btn btn-secondary">詳細</a>
-                        <a href="#" class="btn btn-primary">チャットへ</a>
-                    </div>
-                </article>
-
-                <article class="card">
-                    <div class="top">
-                        <div style="min-width:0;">
-                            <div class="title">API開発プロジェクト</div>
-                            <div class="sub">API Solutions Ltd.</div>
-                            <div class="row" style="margin-top:0.75rem;">
-                                <span class="pill status">応募ステータス：対応中</span>
-                                <span class="pill">未読なし</span>
-                            </div>
+                        <div class="actions">
+                            @if($application->thread)
+                                <a href="{{ $chatUrl }}" class="btn btn-primary">チャットへ</a>
+                            @else
+                                <span class="btn btn-secondary" style="opacity: 0.5; cursor: not-allowed;">チャット未開始</span>
+                            @endif
                         </div>
-                        <div class="row">
-                            <span class="avatar" aria-hidden="true">佐</span>
-                            <span style="font-weight:900;">佐藤 花子</span>
-                        </div>
+                    </article>
+                @empty
+                    <div style="text-align: center; padding: 3rem; color: #586069;">
+                        <p style="font-size: 1.1rem; font-weight: 700;">応募がありません</p>
                     </div>
-                    <div class="desc">RESTful API設計・開発。スケーラブルなアーキテクチャを想定。</div>
-                    <div class="meta">
-                        <div class="meta-item"><div class="meta-label">報酬</div><div class="meta-value">40〜60万</div></div>
-                        <div class="meta-item"><div class="meta-label">稼働</div><div class="meta-value">週15〜25h</div></div>
-                        <div class="meta-item"><div class="meta-label">期間</div><div class="meta-value">2ヶ月</div></div>
-                        <div class="meta-item"><div class="meta-label">スキル</div><div class="meta-value">Node.js</div></div>
-                    </div>
-                    <div class="actions">
-                        <a href="#" class="btn btn-secondary">詳細</a>
-                        <a href="#" class="btn btn-primary">チャットへ</a>
-                    </div>
-                </article>
+                @endforelse
             </div>
+            
+            @if($applications->hasPages())
+                <div style="margin-top: 2rem; display: flex; justify-content: center;">
+                    {{ $applications->links() }}
+                </div>
+            @endif
         </section>
 
-        <section id="tab-closed" role="tabpanel" aria-labelledby="tabClosedBtn" hidden>
+        <section id="tab-closed" role="tabpanel" aria-labelledby="tabClosedBtn" {{ $status === 'pending' ? 'hidden' : '' }}>
             <div class="list">
-                <article class="card">
-                    <div class="top">
-                        <div style="min-width:0;">
-                            <div class="title">UI/UXデザイン改善</div>
-                            <div class="sub">Design Studio</div>
-                            <div class="row" style="margin-top:0.75rem;">
-                                <span class="pill status">応募ステータス：クローズ</span>
-                                <span class="pill">未読なし</span>
+                @forelse($applications as $application)
+                    @php
+                        $job = $application->job;
+                        $freelancer = $application->freelancer;
+                        $company = $job->company ?? null;
+                        
+                        // ステータス表示用
+                        $statusText = 'クローズ';
+                        
+                        // 報酬表示用
+                        $rewardText = '';
+                        if ($job->reward_type === 'monthly') {
+                            $rewardText = number_format($job->min_rate) . '〜' . number_format($job->max_rate) . '万';
+                        } else {
+                            $rewardText = number_format($job->min_rate) . '〜' . number_format($job->max_rate) . '円/時';
+                        }
+                        
+                        // フリーランス名の最初の文字（アバター用）
+                        $freelancerInitial = mb_substr($freelancer->display_name ?? '未', 0, 1);
+                        
+                        // チャットURL
+                        $chatUrl = $application->thread 
+                            ? route('company.threads.show', ['thread' => $application->thread])
+                            : '#';
+                    @endphp
+                    <article class="card">
+                        <div class="top">
+                            <div style="min-width:0;">
+                                <div class="title">{{ $job->title }}</div>
+                                <div class="sub">{{ $company->name ?? '企業名不明' }}</div>
+                                <div class="row" style="margin-top:0.75rem;">
+                                    <span class="pill status">応募ステータス：{{ $statusText }}</span>
+                                    @if($application->is_unread ?? false)
+                                        <span class="pill unread">未読</span>
+                                    @else
+                                        <span class="pill">未読なし</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="row" aria-label="応募者">
+                                <span class="avatar" aria-hidden="true">{{ $freelancerInitial }}</span>
+                                <span style="font-weight:900;">{{ $freelancer->display_name ?? '名前不明' }}</span>
                             </div>
                         </div>
-                        <div class="row">
-                            <span class="avatar" aria-hidden="true">鈴</span>
-                            <span style="font-weight:900;">鈴木 健</span>
+                        <div class="desc">{{ Str::limit($application->message ?? $job->description, 100) }}</div>
+                        <div class="meta" aria-label="案件情報">
+                            <div class="meta-item"><div class="meta-label">報酬</div><div class="meta-value">{{ $rewardText }}</div></div>
+                            <div class="meta-item"><div class="meta-label">稼働</div><div class="meta-value">{{ $job->work_time_text }}</div></div>
+                            @if($job->required_skills_text)
+                                <div class="meta-item"><div class="meta-label">スキル</div><div class="meta-value">{{ Str::limit($job->required_skills_text, 30) }}</div></div>
+                            @endif
                         </div>
+                        <div class="actions">
+                            <a href="{{ route('freelancer.jobs.show', ['job' => $job->id]) }}" class="btn btn-secondary">詳細</a>
+                            @if($application->thread)
+                                <a href="{{ $chatUrl }}" class="btn btn-primary">チャット履歴</a>
+                            @else
+                                <span class="btn btn-secondary" style="opacity: 0.5; cursor: not-allowed;">チャット未開始</span>
+                            @endif
+                        </div>
+                    </article>
+                @empty
+                    <div style="text-align: center; padding: 3rem; color: #586069;">
+                        <p style="font-size: 1.1rem; font-weight: 700;">終了した応募がありません</p>
                     </div>
-                    <div class="desc">既存WebサービスのUI/UX改善。デザインシステム整備を含む。</div>
-                    <div class="meta">
-                        <div class="meta-item"><div class="meta-label">報酬</div><div class="meta-value">45〜65万</div></div>
-                        <div class="meta-item"><div class="meta-label">稼働</div><div class="meta-value">週10〜20h</div></div>
-                        <div class="meta-item"><div class="meta-label">期間</div><div class="meta-value">3ヶ月</div></div>
-                        <div class="meta-item"><div class="meta-label">スキル</div><div class="meta-value">Figma</div></div>
-                    </div>
-                    <div class="actions">
-                        <a href="#" class="btn btn-secondary">詳細</a>
-                        <a href="#" class="btn btn-primary">チャット履歴</a>
-                    </div>
-                </article>
+                @endforelse
             </div>
+            
+            @if($applications->hasPages())
+                <div style="margin-top: 2rem; display: flex; justify-content: center;">
+                    {{ $applications->links() }}
+                </div>
+            @endif
         </section>
     </main>
 
@@ -410,27 +490,6 @@
             toggle.addEventListener('click', (e) => { e.stopPropagation(); isOpen() ? close() : open(); });
             document.addEventListener('click', (e) => { if (!dropdown.contains(e.target)) close(); });
             document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
-        })();
-    </script>
-    <script>
-        (function () {
-            const openBtn = document.getElementById('tabOpenBtn');
-            const closedBtn = document.getElementById('tabClosedBtn');
-            const openPanel = document.getElementById('tab-open');
-            const closedPanel = document.getElementById('tab-closed');
-            if (!openBtn || !closedBtn || !openPanel || !closedPanel) return;
-
-            const setTab = (which) => {
-                const isOpen = which === 'open';
-                openBtn.classList.toggle('is-active', isOpen);
-                closedBtn.classList.toggle('is-active', !isOpen);
-                openBtn.setAttribute('aria-selected', String(isOpen));
-                closedBtn.setAttribute('aria-selected', String(!isOpen));
-                openPanel.hidden = !isOpen;
-                closedPanel.hidden = isOpen;
-            };
-            openBtn.addEventListener('click', () => setTab('open'));
-            closedBtn.addEventListener('click', () => setTab('closed'));
         })();
     </script>
 </body>
