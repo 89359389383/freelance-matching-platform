@@ -411,19 +411,23 @@
     <header class="header">
         <div class="header-content">
             <nav class="nav-links">
-                <a href="#" class="nav-link">案件一覧</a>
-                <a href="#" class="nav-link has-badge active">
+                <a href="{{ route('freelancer.jobs.index') }}" class="nav-link">案件一覧</a>
+                <a href="{{ route('freelancer.applications.index') }}" class="nav-link has-badge active">
                     応募した案件
-                    <span class="badge">3</span>
+                    @if(isset($applicationCount) && $applicationCount > 0)
+                        <span class="badge">{{ $applicationCount }}</span>
+                    @endif
                 </a>
-                <a href="#" class="nav-link has-badge">
+                <a href="{{ route('freelancer.scouts.index') }}" class="nav-link has-badge">
                     スカウト
-                    <span class="badge">1</span>
+                    @if(isset($scoutCount) && $scoutCount > 0)
+                        <span class="badge">{{ $scoutCount }}</span>
+                    @endif
                 </a>
             </nav>
             <div class="user-menu">
                 <div class="dropdown" id="userDropdown">
-                    <button class="user-avatar" id="userDropdownToggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userDropdownMenu">山</button>
+                    <button class="user-avatar" id="userDropdownToggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userDropdownMenu">{{ $userInitial ?? 'U' }}</button>
                     <div class="dropdown-content" id="userDropdownMenu" role="menu" aria-label="ユーザーメニュー">
                         <a href="{{ route('freelancer.profile.settings') }}" class="dropdown-item" role="menuitem">プロフィール設定</a>
                         <div class="dropdown-divider"></div>
@@ -444,38 +448,57 @@
         <section class="panel chat-pane" aria-label="チャット">
             <div class="chat-header">
                 <div class="chat-title">
-                    <strong>株式会社AITECH / ECサイト機能拡張プロジェクト</strong>
+                    <strong>{{ $thread->company->name ?? '企業名不明' }}@if($thread->job) / {{ $thread->job->title }}@endif</strong>
                     <span>案件に関するやり取り</span>
                 </div>
-                <a class="btn" href="#">案件詳細</a>
+                @if($thread->job)
+                    <a class="btn" href="{{ route('freelancer.jobs.show', ['job' => $thread->job->id]) }}">案件詳細</a>
+                @endif
             </div>
 
             <div class="messages" id="messages" aria-label="メッセージ一覧">
-                <div class="bubble-row">
-                    <div class="avatar" style="width:36px;height:36px;">A</div>
-                    <div class="bubble">
-                        <p>ご応募ありがとうございます。実績URL（GitHub/ポートフォリオ）を共有いただけますか？</p>
-                        <small>12/22 10:12</small>
+                @forelse($messages as $message)
+                    @php
+                        $isMe = $message->sender_type === 'freelancer';
+                        $senderName = '';
+                        if ($message->sender_type === 'company') {
+                            $senderName = mb_substr($thread->company->name ?? '企業', 0, 1);
+                        } elseif ($message->sender_type === 'freelancer') {
+                            $senderName = mb_substr(auth()->user()->freelancer->display_name ?? auth()->user()->email ?? 'U', 0, 1);
+                        }
+                        $sentAt = $message->sent_at ? $message->sent_at->format('m/d H:i') : '';
+                        $isLatest = $loop->last;
+                        $canDelete = $isMe && $isLatest && $message->sender_type === 'freelancer';
+                    @endphp
+                    <div class="bubble-row {{ $isMe ? 'me' : '' }}">
+                        @if(!$isMe)
+                            <div class="avatar" style="width:36px;height:36px;">{{ $senderName }}</div>
+                        @endif
+                        <div class="bubble {{ $isMe ? 'me' : '' }}">
+                            <p>{{ $message->body }}</p>
+                            <small>
+                                {{ $sentAt }}
+                                @if($canDelete)
+                                    <span style="margin-left:0.75rem;">
+                                        <form action="{{ route('freelancer.messages.destroy', ['message' => $message->id]) }}" method="POST" style="display:inline;" onsubmit="return confirm('このメッセージを削除しますか？');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" style="background:none;border:none;color:#d73a49;font-weight:900;cursor:pointer;">削除</button>
+                                        </form>
+                                    </span>
+                                @endif
+                            </small>
+                        </div>
                     </div>
-                </div>
-
-                <div class="bubble-row me">
-                    <div class="bubble me">
-                        <p>ありがとうございます。こちらです： https://github.com/example / https://portfolio.example.com</p>
-                        <small>12/22 10:18 <span style="margin-left:0.75rem;"><button type="button" style="background:none;border:none;color:#d73a49;font-weight:900;cursor:pointer;">削除</button></span></small>
+                @empty
+                    <div style="text-align: center; padding: 2rem; color: #6a737d;">
+                        <p>メッセージがありません。</p>
                     </div>
-                </div>
-
-                <div class="bubble-row">
-                    <div class="avatar" style="width:36px;height:36px;">A</div>
-                    <div class="bubble">
-                        <p>確認しました。面談候補日を2〜3つお願いします。</p>
-                        <small>12/22 10:25</small>
-                    </div>
-                </div>
+                @endforelse
             </div>
 
-            <form class="composer" action="#" method="post">
+            <form class="composer" action="{{ route('freelancer.threads.messages.store', ['thread' => $thread->id]) }}" method="post">
+                @csrf
                 <input class="input" type="text" name="content" value="" placeholder="メッセージを入力…" aria-label="メッセージを入力" required>
                 <button class="send" type="submit">送信</button>
             </form>

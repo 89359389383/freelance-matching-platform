@@ -8,6 +8,7 @@ use App\Models\Message;
 use App\Models\Thread;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class ApplicationService
@@ -22,29 +23,67 @@ class ApplicationService
      */
     public function apply(int $freelancerId, Job $job, string $messageBody): Thread
     {
+        Log::info('[ApplicationService] applyメソッド開始', [
+            'freelancer_id' => $freelancerId,
+            'job_id' => $job->id,
+            'job_title' => $job->title ?? 'N/A',
+            'company_id' => $job->company_id,
+            'message_body_length' => strlen($messageBody),
+            'message_body_preview' => mb_substr($messageBody, 0, 50) . (mb_strlen($messageBody) > 50 ? '...' : ''),
+        ]);
+
         // 入力の空白を取り除き、「空メッセージ」を弾きやすくする
         $messageBody = trim($messageBody);
+        Log::debug('[ApplicationService] メッセージトリミング後', [
+            'trimmed_length' => strlen($messageBody),
+            'trimmed_preview' => mb_substr($messageBody, 0, 50) . (mb_strlen($messageBody) > 50 ? '...' : ''),
+        ]);
 
         // 応募メッセージが空なら、設計どおりバリデーションエラーにする
         if ($messageBody === '') {
+            Log::warning('[ApplicationService] 応募メッセージが空のためバリデーションエラー', [
+                'freelancer_id' => $freelancerId,
+                'job_id' => $job->id,
+            ]);
             throw ValidationException::withMessages([
                 'message' => '応募メッセージを入力してください',
             ]);
         }
 
         // 案件が公開中でなければ応募できない（設計の「公開状態チェック」）
+        Log::debug('[ApplicationService] 案件ステータスチェック', [
+            'job_id' => $job->id,
+            'job_status' => $job->status,
+            'expected_status' => Job::STATUS_PUBLISHED,
+            'is_published' => (int) $job->status === (int) Job::STATUS_PUBLISHED,
+        ]);
         if ((int) $job->status !== (int) Job::STATUS_PUBLISHED) {
+            Log::warning('[ApplicationService] 案件が公開中でないため応募不可', [
+                'freelancer_id' => $freelancerId,
+                'job_id' => $job->id,
+                'job_status' => $job->status,
+                'expected_status' => Job::STATUS_PUBLISHED,
+            ]);
             throw ValidationException::withMessages([
                 'job' => 'この案件は現在応募できません',
             ]);
         }
 
         // 応募〜スレッド作成は複数テーブル更新なので、トランザクションで安全にまとめる
+        Log::info('[ApplicationService] トランザクション開始');
         return DB::transaction(function () use ($freelancerId, $job, $messageBody): Thread {
             // 時刻を1回だけ作って、thread/messageの整合を取りやすくする
             $now = Carbon::now();
+            Log::debug('[ApplicationService] トランザクション内: 基準時刻を設定', [
+                'now' => $now->toDateTimeString(),
+                'timestamp' => $now->timestamp,
+            ]);
 
             // 既に応募していないかをチェックする（Controllerでも見るが二重防御）
+            Log::debug('[ApplicationService] 既存応募チェック開始', [
+                'job_id' => $job->id,
+                'freelancer_id' => $freelancerId,
+            ]);
             $alreadyApplied = Application::query()
                 // 同じ案件への応募か
                 ->where('job_id', $job->id)
@@ -52,11 +91,21 @@ class ApplicationService
                 ->where('freelancer_id', $freelancerId)
                 // 1件でもあれば「既応募」
                 ->exists();
+            Log::info('[ApplicationService] 既存応募チェック結果', [
+                'already_applied' => $alreadyApplied,
+                'job_id' => $job->id,
+                'freelancer_id' => $freelancerId,
+            ]);
 
             // 既応募なら、新規作成はせず既存スレッドへ誘導する（重複応募防止）
             if ($alreadyApplied) {
+                Log::info('[ApplicationService] 既応募を検出: 既存スレッドを取得', [
+                    'job_id' => $job->id,
+                    'freelancer_id' => $freelancerId,
+                    'company_id' => $job->company_id,
+                ]);
                 // 応募スレッドは company + freelancer + job の組み合わせで導出する
-                return Thread::query()
+                $existingThread = Thread::query()
                     // 企業は案件に紐づく
                     ->where('company_id', $job->company_id)
                     // 応募者（フリーランス）
@@ -65,9 +114,22 @@ class ApplicationService
                     ->where('job_id', $job->id)
                     // 見つからないのは不整合なので例外にする
                     ->firstOrFail();
+                Log::info('[ApplicationService] 既存スレッドを取得完了', [
+                    'thread_id' => $existingThread->id,
+                    'latest_message_at' => $existingThread->latest_message_at?->toDateTimeString(),
+                    'is_unread_for_company' => $existingThread->is_unread_for_company,
+                    'is_unread_for_freelancer' => $existingThread->is_unread_for_freelancer,
+                ]);
+                return $existingThread;
             }
 
             // applications に応募レコードを作成する（応募履歴の記録）
+            Log::info('[ApplicationService] 新規応募レコード作成開始', [
+                'job_id' => $job->id,
+                'freelancer_id' => $freelancerId,
+                'status' => Application::STATUS_PENDING,
+                'message_length' => strlen($messageBody),
+            ]);
             $application = Application::create([
                 // どの案件に応募したか
                 'job_id' => $job->id,
@@ -78,8 +140,25 @@ class ApplicationService
                 // 初期状態は「未対応」
                 'status' => Application::STATUS_PENDING,
             ]);
+            Log::info('[ApplicationService] 応募レコード作成完了', [
+                'application_id' => $application->id,
+                'job_id' => $application->job_id,
+                'freelancer_id' => $application->freelancer_id,
+                'status' => $application->status,
+                'created_at' => $application->created_at?->toDateTimeString(),
+            ]);
 
             // threads は company + freelancer + job の組み合わせで「部屋」を表す（再利用あり）
+            Log::info('[ApplicationService] スレッド作成/取得開始', [
+                'company_id' => $job->company_id,
+                'freelancer_id' => $freelancerId,
+                'job_id' => $job->id,
+            ]);
+            $threadWasRecentlyCreated = !Thread::query()
+                ->where('company_id', $job->company_id)
+                ->where('freelancer_id', $freelancerId)
+                ->where('job_id', $job->id)
+                ->exists();
             $thread = Thread::query()->firstOrCreate(
                 [
                     // 相手企業
@@ -102,9 +181,28 @@ class ApplicationService
                     'is_unread_for_freelancer' => false,
                 ]
             );
+            Log::info('[ApplicationService] スレッド作成/取得完了', [
+                'thread_id' => $thread->id,
+                'was_newly_created' => $threadWasRecentlyCreated,
+                'company_id' => $thread->company_id,
+                'freelancer_id' => $thread->freelancer_id,
+                'job_id' => $thread->job_id,
+                'latest_sender_type' => $thread->latest_sender_type,
+                'latest_sender_id' => $thread->latest_sender_id,
+                'latest_message_at' => $thread->latest_message_at?->toDateTimeString(),
+                'is_unread_for_company' => $thread->is_unread_for_company,
+                'is_unread_for_freelancer' => $thread->is_unread_for_freelancer,
+            ]);
 
             // messages に「最初の応募メッセージ」を保存する（チャット履歴として残す）
-            Message::create([
+            Log::info('[ApplicationService] メッセージ作成開始', [
+                'thread_id' => $thread->id,
+                'sender_type' => 'freelancer',
+                'sender_id' => $freelancerId,
+                'message_length' => strlen($application->message),
+                'sent_at' => $now->toDateTimeString(),
+            ]);
+            $message = Message::create([
                 // どのスレッドに属するか
                 'thread_id' => $thread->id,
                 // 送信者の種別
@@ -116,8 +214,26 @@ class ApplicationService
                 // 送信時刻
                 'sent_at' => $now,
             ]);
+            Log::info('[ApplicationService] メッセージ作成完了', [
+                'message_id' => $message->id,
+                'thread_id' => $message->thread_id,
+                'sender_type' => $message->sender_type,
+                'sender_id' => $message->sender_id,
+                'body_length' => strlen($message->body),
+                'sent_at' => $message->sent_at?->toDateTimeString(),
+            ]);
 
             // スレッド側も「最新情報」を揃えておく（再利用スレッドだった場合にも更新する）
+            Log::info('[ApplicationService] スレッド更新開始', [
+                'thread_id' => $thread->id,
+                'update_data' => [
+                    'latest_sender_type' => 'freelancer',
+                    'latest_sender_id' => $freelancerId,
+                    'latest_message_at' => $now->toDateTimeString(),
+                    'is_unread_for_company' => true,
+                    'is_unread_for_freelancer' => false,
+                ],
+            ]);
             $thread->forceFill([
                 // 最後に送ったのはフリーランス
                 'latest_sender_type' => 'freelancer',
@@ -130,8 +246,23 @@ class ApplicationService
                 // フリーランス側は既読のまま
                 'is_unread_for_freelancer' => false,
             ])->save();
+            Log::info('[ApplicationService] スレッド更新完了', [
+                'thread_id' => $thread->id,
+                'latest_sender_type' => $thread->latest_sender_type,
+                'latest_sender_id' => $thread->latest_sender_id,
+                'latest_message_at' => $thread->latest_message_at?->toDateTimeString(),
+                'is_unread_for_company' => $thread->is_unread_for_company,
+                'is_unread_for_freelancer' => $thread->is_unread_for_freelancer,
+            ]);
 
             // Controllerはこのthreadへ遷移する（設計：応募後は即チャット）
+            Log::info('[ApplicationService] トランザクション完了: 応募処理成功', [
+                'thread_id' => $thread->id,
+                'application_id' => $application->id,
+                'message_id' => $message->id,
+                'freelancer_id' => $freelancerId,
+                'job_id' => $job->id,
+            ]);
             return $thread;
         });
     }

@@ -686,19 +686,23 @@
     <header class="header">
         <div class="header-content">
             <nav class="nav-links">
-                <a href="#" class="nav-link active">案件一覧</a>
-                <a href="#" class="nav-link has-badge">
+                <a href="{{ route('freelancer.jobs.index') }}" class="nav-link active">案件一覧</a>
+                <a href="{{ route('freelancer.applications.index') }}" class="nav-link has-badge">
                     応募した案件
-                    <span class="badge">3</span>
+                    @if(($applicationCount ?? 0) > 0)
+                        <span class="badge">{{ $applicationCount }}</span>
+                    @endif
                 </a>
-                <a href="#" class="nav-link has-badge">
+                <a href="{{ route('freelancer.scouts.index') }}" class="nav-link has-badge">
                     スカウト
-                    <span class="badge">1</span>
+                    @if(($scoutCount ?? 0) > 0)
+                        <span class="badge">{{ $scoutCount }}</span>
+                    @endif
                 </a>
             </nav>
             <div class="user-menu">
                 <div class="dropdown" id="userDropdown">
-                    <button class="user-avatar" id="userDropdownToggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userDropdownMenu">山</button>
+                    <button class="user-avatar" id="userDropdownToggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userDropdownMenu">{{ $userInitial ?? 'U' }}</button>
                     <div class="dropdown-content" id="userDropdownMenu" role="menu" aria-label="ユーザーメニュー">
                         <a href="{{ route('freelancer.profile.settings') }}" class="dropdown-item" role="menuitem">プロフィール設定</a>
                         <div class="dropdown-divider"></div>
@@ -718,10 +722,10 @@
         <aside class="sidebar">
             <div class="search-section">
                 <h3>検索条件</h3>
-
+                <form method="GET" action="{{ route('freelancer.jobs.index') }}" id="searchForm">
                 <div class="search-group">
                     <label for="keyword">キーワード</label>
-                    <input type="text" id="keyword" class="search-input" placeholder="案件名 / 会社名 / スキル など">
+                    <input type="text" id="keyword" name="keyword" class="search-input" placeholder="案件名 / 会社名 / スキル など" value="{{ old('keyword', $keyword ?? '') }}">
                 </div>
 
                 <div class="search-group">
@@ -751,7 +755,8 @@
                     <div class="price-help" id="priceHelp">例: 50 〜 70（万円）</div>
                 </div>
 
-                <button class="search-btn">検索</button>
+                <button type="submit" class="search-btn">検索</button>
+                </form>
             </div>
         </aside>
 
@@ -760,231 +765,121 @@
             <h1 class="page-title">公開中の案件</h1>
 
             <div class="jobs-grid">
-                <!-- Job Card 1 -->
-                <div class="job-card">
-                    <div class="job-header">
-                        <div>
-                            <h2 class="job-title">ECサイト機能拡張プロジェクト</h2>
-                            <div class="company-name">株式会社AITECH</div>
+                @forelse($jobs as $job)
+                    @php
+                        $isApplied = in_array($job->id, $appliedJobIds ?? []);
+                        $rewardText = '';
+                        if ($job->reward_type === 'monthly') {
+                            $rewardText = $job->min_rate . '〜' . $job->max_rate . '万円';
+                        } else {
+                            $rewardText = number_format($job->min_rate) . '〜' . number_format($job->max_rate) . '円/時';
+                        }
+                        $skills = $job->required_skills_text ? explode(',', $job->required_skills_text) : [];
+                    @endphp
+                    <div class="job-card">
+                        <div class="job-header">
+                            <div>
+                                <h2 class="job-title">{{ $job->title }}</h2>
+                                <div class="company-name">{{ $job->company->name }}</div>
+                            </div>
+                        </div>
+
+                        <p class="job-description">{{ $job->description }}</p>
+
+                        <div class="job-details">
+                            <div class="detail-item">
+                                <div class="detail-label">稼働時間</div>
+                                <div class="detail-value">{{ $job->work_time_text }}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">報酬</div>
+                                <div class="detail-value">{{ $rewardText }}</div>
+                            </div>
+                        </div>
+
+                        @if(count($skills) > 0)
+                        <div class="skills-section">
+                            <div class="skills-title">必要スキル</div>
+                            <div class="skills">
+                                @foreach($skills as $skill)
+                                    <span class="skill-tag">{{ trim($skill) }}</span>
+                                @endforeach
+                            </div>
+                        </div>
+                        @endif
+
+                        <div class="job-actions">
+                            <a href="{{ route('freelancer.jobs.show', $job->id) }}" class="btn btn-secondary">詳細</a>
+                            @if($isApplied)
+                                @php
+                                    $thread = $threadMap[$job->id] ?? null;
+                                @endphp
+                                @if($thread)
+                                    <a href="{{ route('freelancer.threads.show', $thread['id']) }}" class="btn btn-success">応募済み（チャットを開く）</a>
+                                @else
+                                    <button class="btn btn-success" disabled>応募済み</button>
+                                @endif
+                            @else
+                                <a href="{{ route('freelancer.jobs.apply.create', $job->id) }}" class="btn btn-primary">応募</a>
+                            @endif
                         </div>
                     </div>
-
-                    <p class="job-description">既存のECサイトに新機能を追加するプロジェクトです。商品管理システムの改善とユーザー体験の向上を目的としています。</p>
-
-                    <div class="job-details">
-                        <div class="detail-item">
-                            <div class="detail-label">稼働時間</div>
-                            <div class="detail-value">週20〜30時間</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">契約期間</div>
-                            <div class="detail-value">3ヶ月</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">報酬</div>
-                            <div class="detail-value">50〜70万円</div>
-                        </div>
+                @empty
+                    <div class="job-card">
+                        <p class="job-description" style="text-align: center; padding: 2rem;">
+                            該当する案件が見つかりませんでした。
+                        </p>
                     </div>
-
-                    <div class="skills-section">
-                        <div class="skills-title">必要スキル</div>
-                        <div class="skills">
-                            <span class="skill-tag">PHP</span>
-                            <span class="skill-tag">Laravel</span>
-                            <span class="skill-tag">JavaScript</span>
-                            <span class="skill-tag">Vue.js</span>
-                            <span class="skill-tag">MySQL</span>
-                        </div>
-                    </div>
-
-                    <div class="job-actions">
-                        <a href="#" class="btn btn-secondary">詳細</a>
-                        <button class="btn btn-primary">応募</button>
-                    </div>
-                </div>
-
-                <!-- Job Card 2 -->
-                <div class="job-card">
-                    <div class="job-header">
-                        <div>
-                            <h2 class="job-title">モバイルアプリ開発</h2>
-                            <div class="company-name">Tech Solutions Inc.</div>
-                        </div>
-                    </div>
-
-                    <p class="job-description">React Nativeを使用したクロスプラットフォームモバイルアプリの開発。ユーザビリティを重視した設計を求めています。</p>
-
-                    <div class="job-details">
-                        <div class="detail-item">
-                            <div class="detail-label">稼働時間</div>
-                            <div class="detail-value">週25〜35時間</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">契約期間</div>
-                            <div class="detail-value">4ヶ月</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">報酬</div>
-                            <div class="detail-value">60〜80万円</div>
-                        </div>
-                    </div>
-
-                    <div class="skills-section">
-                        <div class="skills-title">必要スキル</div>
-                        <div class="skills">
-                            <span class="skill-tag">React Native</span>
-                            <span class="skill-tag">JavaScript</span>
-                            <span class="skill-tag">TypeScript</span>
-                            <span class="skill-tag">Firebase</span>
-                        </div>
-                    </div>
-
-                    <div class="job-actions">
-                        <a href="#" class="btn btn-secondary">詳細</a>
-                        <button class="btn btn-primary">応募</button>
-                    </div>
-                </div>
-
-                <!-- Job Card 3 -->
-                <div class="job-card">
-                    <div class="job-header">
-                        <div>
-                            <h2 class="job-title">データ分析システム構築</h2>
-                            <div class="company-name">Data Analytics Corp.</div>
-                        </div>
-                    </div>
-
-                    <p class="job-description">ビッグデータの分析と可視化を行うシステムの構築。Pythonと機械学習の知識を活かせるプロジェクトです。</p>
-
-                    <div class="job-details">
-                        <div class="detail-item">
-                            <div class="detail-label">稼働時間</div>
-                            <div class="detail-value">週30〜40時間</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">契約期間</div>
-                            <div class="detail-value">6ヶ月</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">報酬</div>
-                            <div class="detail-value">80〜100万円</div>
-                        </div>
-                    </div>
-
-                    <div class="skills-section">
-                        <div class="skills-title">必要スキル</div>
-                        <div class="skills">
-                            <span class="skill-tag">Python</span>
-                            <span class="skill-tag">Pandas</span>
-                            <span class="skill-tag">TensorFlow</span>
-                            <span class="skill-tag">PostgreSQL</span>
-                        </div>
-                    </div>
-
-                    <div class="job-actions">
-                        <a href="#" class="btn btn-secondary">詳細</a>
-                        <button class="btn btn-primary">応募</button>
-                    </div>
-                </div>
-
-                <!-- Job Card 4 - Already Applied -->
-                <div class="job-card">
-                    <div class="job-header">
-                        <div>
-                            <h2 class="job-title">API開発プロジェクト</h2>
-                            <div class="company-name">API Solutions Ltd.</div>
-                        </div>
-                    </div>
-
-                    <p class="job-description">RESTful APIの設計・開発。マイクロサービスアーキテクチャを採用し、スケーラブルなシステム構築を目指します。</p>
-
-                    <div class="job-details">
-                        <div class="detail-item">
-                            <div class="detail-label">稼働時間</div>
-                            <div class="detail-value">週15〜25時間</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">契約期間</div>
-                            <div class="detail-value">2ヶ月</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">報酬</div>
-                            <div class="detail-value">40〜60万円</div>
-                        </div>
-                    </div>
-
-                    <div class="skills-section">
-                        <div class="skills-title">必要スキル</div>
-                        <div class="skills">
-                            <span class="skill-tag">Node.js</span>
-                            <span class="skill-tag">Express</span>
-                            <span class="skill-tag">MongoDB</span>
-                            <span class="skill-tag">Docker</span>
-                        </div>
-                    </div>
-
-                    <div class="job-actions">
-                        <a href="#" class="btn btn-secondary">詳細</a>
-                        <button class="btn btn-success">応募済み（チャットを開く）</button>
-                    </div>
-                </div>
-
-                <!-- Job Card 5 -->
-                <div class="job-card">
-                    <div class="job-header">
-                        <div>
-                            <h2 class="job-title">UI/UXデザイン改善</h2>
-                            <div class="company-name">Design Studio</div>
-                        </div>
-                    </div>
-
-                    <p class="job-description">既存WebサービスのUI/UXを改善するプロジェクト。ユーザビリティテストとデザインシステムの構築を担当していただきます。</p>
-
-                    <div class="job-details">
-                        <div class="detail-item">
-                            <div class="detail-label">稼働時間</div>
-                            <div class="detail-value">週10〜20時間</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">契約期間</div>
-                            <div class="detail-value">3ヶ月</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">報酬</div>
-                            <div class="detail-value">45〜65万円</div>
-                        </div>
-                    </div>
-
-                    <div class="skills-section">
-                        <div class="skills-title">必要スキル</div>
-                        <div class="skills">
-                            <span class="skill-tag">Figma</span>
-                            <span class="skill-tag">Sketch</span>
-                            <span class="skill-tag">Adobe XD</span>
-                            <span class="skill-tag">HTML</span>
-                            <span class="skill-tag">CSS</span>
-                        </div>
-                    </div>
-
-                    <div class="job-actions">
-                        <a href="#" class="btn btn-secondary">詳細</a>
-                        <button class="btn btn-primary">応募</button>
-                    </div>
-                </div>
+                @endforelse
             </div>
 
             <!-- Pagination -->
+            @if($jobs->hasPages())
             <nav class="pagination" aria-label="ページネーション">
                 <ul class="pagination-list">
-                    <li><a class="pagination-link is-disabled" href="#" aria-disabled="true">前へ</a></li>
-                    <li><a class="pagination-link is-active" href="#" aria-current="page">1</a></li>
-                    <li><a class="pagination-link" href="#">2</a></li>
-                    <li><a class="pagination-link" href="#">3</a></li>
-                    <li><span class="pagination-ellipsis" aria-hidden="true">…</span></li>
-                    <li><a class="pagination-link" href="#">10</a></li>
-                    <li><a class="pagination-link" href="#">次へ</a></li>
+                    @if($jobs->onFirstPage())
+                        <li><span class="pagination-link is-disabled" aria-disabled="true">前へ</span></li>
+                    @else
+                        <li><a class="pagination-link" href="{{ $jobs->previousPageUrl() }}">前へ</a></li>
+                    @endif
+
+                    @php
+                        $currentPage = $jobs->currentPage();
+                        $lastPage = $jobs->lastPage();
+                        $startPage = max(1, $currentPage - 2);
+                        $endPage = min($lastPage, $currentPage + 2);
+                    @endphp
+
+                    @if($startPage > 1)
+                        <li><a class="pagination-link" href="{{ $jobs->url(1) }}">1</a></li>
+                        @if($startPage > 2)
+                            <li><span class="pagination-ellipsis" aria-hidden="true">…</span></li>
+                        @endif
+                    @endif
+
+                    @for($page = $startPage; $page <= $endPage; $page++)
+                        @if($page == $currentPage)
+                            <li><span class="pagination-link is-active" aria-current="page">{{ $page }}</span></li>
+                        @else
+                            <li><a class="pagination-link" href="{{ $jobs->url($page) }}">{{ $page }}</a></li>
+                        @endif
+                    @endfor
+
+                    @if($endPage < $lastPage)
+                        @if($endPage < $lastPage - 1)
+                            <li><span class="pagination-ellipsis" aria-hidden="true">…</span></li>
+                        @endif
+                        <li><a class="pagination-link" href="{{ $jobs->url($lastPage) }}">{{ $lastPage }}</a></li>
+                    @endif
+
+                    @if($jobs->hasMorePages())
+                        <li><a class="pagination-link" href="{{ $jobs->nextPageUrl() }}">次へ</a></li>
+                    @else
+                        <li><span class="pagination-link is-disabled" aria-disabled="true">次へ</span></li>
+                    @endif
                 </ul>
             </nav>
+            @endif
         </div>
     </main>
     <script>

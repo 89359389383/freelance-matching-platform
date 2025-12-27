@@ -299,19 +299,23 @@
     <header class="header">
         <div class="header-content">
             <nav class="nav-links">
-                <a href="#" class="nav-link">案件一覧</a>
-                <a href="#" class="nav-link has-badge active">
+                <a href="{{ route('freelancer.jobs.index') }}" class="nav-link">案件一覧</a>
+                <a href="{{ route('freelancer.applications.index') }}" class="nav-link has-badge active">
                     応募した案件
-                    <span class="badge">3</span>
+                    @if(($applicationCount ?? 0) > 0)
+                        <span class="badge">{{ $applicationCount }}</span>
+                    @endif
                 </a>
-                <a href="#" class="nav-link has-badge">
+                <a href="{{ route('freelancer.scouts.index') }}" class="nav-link has-badge">
                     スカウト
-                    <span class="badge">1</span>
+                    @if(($scoutCount ?? 0) > 0)
+                        <span class="badge">{{ $scoutCount }}</span>
+                    @endif
                 </a>
             </nav>
             <div class="user-menu">
                 <div class="dropdown" id="userDropdown">
-                    <button class="user-avatar" id="userDropdownToggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userDropdownMenu">山</button>
+                    <button class="user-avatar" id="userDropdownToggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userDropdownMenu">{{ $userInitial ?? 'U' }}</button>
                     <div class="dropdown-content" id="userDropdownMenu" role="menu" aria-label="ユーザーメニュー">
                         <a href="{{ route('freelancer.profile.settings') }}" class="dropdown-item" role="menuitem">プロフィール設定</a>
                         <div class="dropdown-divider"></div>
@@ -335,37 +339,55 @@
                 <div class="panel-title">応募先案件</div>
                 <div class="kv">
                     <div class="k">案件名</div>
-                    <div class="v">ECサイト機能拡張プロジェクト</div>
+                    <div class="v">{{ $job->title }}</div>
                     <div class="k">会社名</div>
-                    <div class="v">株式会社AITECH</div>
+                    <div class="v">{{ $job->company->name }}</div>
                     <div class="k">報酬</div>
-                    <div class="v">50〜70万円</div>
+                    <div class="v">
+                        @php
+                            $rewardText = '';
+                            if ($job->reward_type === 'monthly') {
+                                $rewardText = $job->min_rate . '〜' . $job->max_rate . '万円';
+                            } else {
+                                $rewardText = number_format($job->min_rate) . '〜' . number_format($job->max_rate) . '円/時';
+                            }
+                        @endphp
+                        {{ $rewardText }}
+                    </div>
                     <div class="k">想定稼働時間／期間</div>
-                    <div class="v">週20〜30時間 / 3ヶ月</div>
+                    <div class="v">{{ $job->work_time_text }}</div>
+                    @if($job->required_skills_text)
                     <div class="k">必要スキル</div>
                     <div class="v">
                         <div class="skills" aria-label="必要スキル">
-                            <span class="skill-tag">PHP</span>
-                            <span class="skill-tag">Laravel</span>
-                            <span class="skill-tag">Vue.js</span>
-                            <span class="skill-tag">MySQL</span>
+                            @php
+                                $skills = explode(',', $job->required_skills_text);
+                            @endphp
+                            @foreach($skills as $skill)
+                                <span class="skill-tag">{{ trim($skill) }}</span>
+                            @endforeach
                         </div>
                     </div>
+                    @endif
                 </div>
             </div>
 
             <!-- 応募内容 -->
             <div class="panel">
                 <div class="panel-title">応募内容</div>
-                <form class="form" action="#" method="post">
+                <form class="form" action="{{ route('freelancer.jobs.apply.store', $job) }}" method="post">
+                    @csrf
                     <div class="form-row">
                         <label class="label" for="message">応募メッセージ <span class="required">必須</span></label>
-                        <textarea id="message" class="textarea" name="message" placeholder="例) 要件の◯◯に対して、Laravel + Vueでの実装経験があります。稼働は週25h、開始は1月上旬から可能です。実績: https://..." required></textarea>
+                        <textarea id="message" class="textarea" name="message" placeholder="例) 要件の◯◯に対して、Laravel + Vueでの実装経験があります。稼働は週25h、開始は1月上旬から可能です。実績: https://..." required>{{ old('message') }}</textarea>
                         <div class="help">200〜600文字程度が目安です。具体的な成果（数値/期間/担当範囲）を入れると強いです。</div>
+                        @error('message')
+                            <div class="help" style="color: #d73a49;">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="actions">
-                        <a class="btn btn-secondary" href="#" role="button">戻る</a>
+                        <a class="btn btn-secondary" href="{{ route('freelancer.jobs.show', $job) }}" role="button">戻る</a>
                         <button class="btn btn-primary" type="submit">応募を送信</button>
                     </div>
                 </form>

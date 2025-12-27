@@ -235,7 +235,7 @@
             white-space: nowrap;
         }
 
-        .chip.status-inreview {
+        .chip.status-pending {
             background: #fff5b1;
             border-color: #f1e05a;
             color: #7a5a00;
@@ -244,11 +244,6 @@
             background: #f1f8ff;
             border-color: #c8e1ff;
             color: #0366d6;
-        }
-        .chip.status-accepted {
-            background: #e6ffed;
-            border-color: #b7e5c1;
-            color: #22863a;
         }
         .chip.status-closed {
             background: #f6f8fa;
@@ -546,19 +541,23 @@
     <header class="header">
         <div class="header-content">
             <nav class="nav-links">
-                <a href="#" class="nav-link">案件一覧</a>
-                <a href="#" class="nav-link has-badge active">
+                <a href="{{ route('freelancer.jobs.index') }}" class="nav-link">案件一覧</a>
+                <a href="{{ route('freelancer.applications.index') }}" class="nav-link has-badge active">
                     応募した案件
-                    <span class="badge">3</span>
+                    @if($applicationCount > 0)
+                        <span class="badge">{{ $applicationCount }}</span>
+                    @endif
                 </a>
-                <a href="#" class="nav-link has-badge">
+                <a href="{{ route('freelancer.scouts.index') }}" class="nav-link has-badge">
                     スカウト
-                    <span class="badge">1</span>
+                    @if($scoutCount > 0)
+                        <span class="badge">{{ $scoutCount }}</span>
+                    @endif
                 </a>
             </nav>
             <div class="user-menu">
                 <div class="dropdown" id="userDropdown">
-                    <button class="user-avatar" id="userDropdownToggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userDropdownMenu">山</button>
+                    <button class="user-avatar" id="userDropdownToggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userDropdownMenu">{{ $userInitial }}</button>
                     <div class="dropdown-content" id="userDropdownMenu" role="menu" aria-label="ユーザーメニュー">
                         <a href="{{ route('freelancer.profile.settings') }}" class="dropdown-item" role="menuitem">プロフィール設定</a>
                         <div class="dropdown-divider"></div>
@@ -576,8 +575,8 @@
     <div class="tabs-bar">
         <div class="tabs-container">
             <nav aria-label="応募一覧タブ">
-                <a class="tab-link active" href="#" data-tab="active" id="tab-active">応募中</a>
-                <a class="tab-link" href="#" data-tab="closed" id="tab-closed">終了</a>
+                <a class="tab-link {{ $status === 'pending' ? 'active' : '' }}" href="{{ route('freelancer.applications.index', ['status' => 'pending']) }}" data-tab="active" id="tab-active">応募中</a>
+                <a class="tab-link {{ $status === 'closed' ? 'active' : '' }}" href="{{ route('freelancer.applications.index', ['status' => 'closed']) }}" data-tab="closed" id="tab-closed">終了</a>
             </nav>
         </div>
     </div>
@@ -587,111 +586,95 @@
         <!-- Content Area -->
         <div class="content-area">
             <div class="jobs-grid" id="jobs-grid">
-                <div class="job-card" role="button" tabindex="0">
-                    <div class="job-header">
-                        <div>
-                            <h2 class="job-title">ECサイト機能拡張プロジェクト</h2>
-                            <div class="company-name">株式会社AITECH</div>
+                @forelse($applications as $application)
+                    @php
+                        $job = $application->job;
+                        $company = $job->company ?? null;
+                        $thread = $application->thread ?? null;
+                        $isUnread = $application->is_unread ?? false;
+                        
+                        // ステータス表示用
+                        $statusLabels = [
+                            \App\Models\Application::STATUS_PENDING => '未対応',
+                            \App\Models\Application::STATUS_IN_PROGRESS => '対応中',
+                            \App\Models\Application::STATUS_CLOSED => 'クローズ',
+                        ];
+                        $statusLabel = $statusLabels[$application->status] ?? '不明';
+                        
+                        // ステータス用のCSSクラス名
+                        $statusClassMap = [
+                            \App\Models\Application::STATUS_PENDING => 'status-pending',
+                            \App\Models\Application::STATUS_IN_PROGRESS => 'status-interview',
+                            \App\Models\Application::STATUS_CLOSED => 'status-closed',
+                        ];
+                        $statusClass = $statusClassMap[$application->status] ?? '';
+                        
+                        // 報酬表示用
+                        $rewardText = '';
+                        if ($job->reward_type === 'monthly') {
+                            $rewardText = number_format($job->min_rate) . '〜' . number_format($job->max_rate) . '万円';
+                        } elseif ($job->reward_type === 'hourly') {
+                            $rewardText = number_format($job->min_rate) . '〜' . number_format($job->max_rate) . '円/時';
+                        }
+                        
+                        // スキル表示用（カンマ区切りを配列に変換）
+                        $skills = [];
+                        if (!empty($job->required_skills_text)) {
+                            $skills = array_map('trim', explode(',', $job->required_skills_text));
+                            $skills = array_filter($skills);
+                        }
+                        
+                        // クローズ済みかどうか
+                        $isClosed = $application->status === \App\Models\Application::STATUS_CLOSED;
+                    @endphp
+                    <div class="job-card {{ $isClosed ? 'closed-job' : '' }}" style="{{ $isClosed && $status === 'pending' ? 'display:none;' : '' }}" role="button" tabindex="0">
+                        <div class="job-header">
+                            <div>
+                                <h2 class="job-title">{{ $job->title }}</h2>
+                                <div class="company-name">{{ $company->name ?? '企業名不明' }}</div>
+                            </div>
+                            <div class="job-meta">
+                                @if($isUnread)
+                                    <span class="chip unread">未読</span>
+                                @endif
+                                <span class="chip {{ $statusClass }}">{{ $statusLabel }}</span>
+                            </div>
                         </div>
-                        <div class="job-meta">
-                            <span class="chip unread">未読</span>
-                            <span class="chip">未対応</span>
+                        <p class="job-description">{{ $application->message }}</p>
+                        <div class="job-details">
+                            <div class="detail-item">
+                                <div class="detail-label">想定稼働時間／期間</div>
+                                <div class="detail-value">{{ $job->work_time_text }}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">報酬</div>
+                                <div class="detail-value">{{ $rewardText }}</div>
+                            </div>
                         </div>
-                    </div>
-                    <p class="job-description">応募メッセージを送信しました。追加で実績URLの共有をお願いします。</p>
-                    <div class="job-details">
-                        <div class="detail-item">
-                            <div class="detail-label">想定稼働時間／期間</div>
-                            <div class="detail-value">週20〜30時間 / 3ヶ月</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">報酬</div>
-                            <div class="detail-value">50〜70万円</div>
-                        </div>
-                    </div>
-                    <div class="skills-section">
-                        <div class="skills-title">必要スキル</div>
-                        <div class="skills">
-                            <span class="skill-tag">PHP</span>
-                            <span class="skill-tag">Laravel</span>
-                            <span class="skill-tag">Vue.js</span>
-                        </div>
-                    </div>
-                    <div class="job-actions">
-                        <a href="#" class="btn btn-secondary">案件詳細</a>
-                        <a href="#" class="btn btn-primary">チャットを開く</a>
-                    </div>
-                </div>
-
-                <div class="job-card" role="button" tabindex="0">
-                    <div class="job-header">
-                        <div>
-                            <h2 class="job-title">API開発プロジェクト</h2>
-                            <div class="company-name">API Solutions Ltd.</div>
-                        </div>
-                        <div class="job-meta">
-                            <span class="chip">対応中</span>
-                        </div>
-                    </div>
-                    <p class="job-description">面談候補日をご提示ください。</p>
-                    <div class="job-details">
-                        <div class="detail-item">
-                            <div class="detail-label">想定稼働時間／期間</div>
-                            <div class="detail-value">週15〜25時間 / 2ヶ月</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">報酬</div>
-                            <div class="detail-value">40〜60万円</div>
-                        </div>
-                    </div>
-                    <div class="skills-section">
-                        <div class="skills-title">必要スキル</div>
-                        <div class="skills">
-                            <span class="skill-tag">Node.js</span>
-                            <span class="skill-tag">Express</span>
-                            <span class="skill-tag">Docker</span>
-                        </div>
-                    </div>
-                    <div class="job-actions">
-                        <a href="#" class="btn btn-secondary">案件詳細</a>
-                        <a href="#" class="btn btn-primary">チャットを開く</a>
-                    </div>
-                </div>
-
-                <div class="job-card closed-job" style="opacity:0.85;display:none;" role="button" tabindex="0">
-                    <div class="job-header">
-                        <div>
-                            <h2 class="job-title">UI/UXデザイン改善</h2>
-                            <div class="company-name">Design Studio</div>
-                        </div>
-                        <div class="job-meta">
-                            <span class="chip">クローズ</span>
-                        </div>
-                    </div>
-                    <p class="job-description">この案件は終了（クローズ）しました。閲覧のみ可能です。</p>
-                    <div class="job-details">
-                        <div class="detail-item">
-                            <div class="detail-label">想定稼働時間／期間</div>
-                            <div class="detail-value">週10〜20時間 / 3ヶ月</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">報酬</div>
-                            <div class="detail-value">45〜65万円</div>
+                        @if(count($skills) > 0)
+                            <div class="skills-section">
+                                <div class="skills-title">必要スキル</div>
+                                <div class="skills">
+                                    @foreach($skills as $skill)
+                                        <span class="skill-tag">{{ $skill }}</span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                        <div class="job-actions">
+                            <a href="{{ route('freelancer.jobs.show', ['job' => $job->id]) }}" class="btn btn-secondary">案件詳細</a>
+                            @if($thread)
+                                <a href="{{ route('freelancer.threads.show', ['thread' => $thread->id]) }}" class="btn btn-primary">チャットを開く</a>
+                            @else
+                                <span class="btn btn-primary" style="opacity:0.6;cursor:not-allowed;">チャット（準備中）</span>
+                            @endif
                         </div>
                     </div>
-                    <div class="skills-section">
-                        <div class="skills-title">必要スキル</div>
-                        <div class="skills">
-                            <span class="skill-tag">Figma</span>
-                            <span class="skill-tag">UI/UX</span>
-                            <span class="skill-tag">デザインシステム</span>
-                        </div>
+                @empty
+                    <div style="text-align: center; padding: 3rem; color: #6a737d;">
+                        <p style="font-size: 1.1rem;">応募した案件がありません。</p>
                     </div>
-                    <div class="job-actions">
-                        <a href="#" class="btn btn-secondary">案件詳細</a>
-                        <a href="#" class="btn btn-primary" style="opacity:0.6;cursor:not-allowed;">チャット（送信不可）</a>
-                    </div>
-                </div>
+                @endforelse
             </div>
         </div>
     </main>
@@ -730,32 +713,7 @@
                 });
             }
 
-            // Tab Switching
-            const tabLinks = document.querySelectorAll('.tab-link');
-            const activeJobs = document.querySelectorAll('.job-card:not(.closed-job)');
-            const closedJobs = document.querySelectorAll('.job-card.closed-job');
-
-            tabLinks.forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    
-                    // Remove active class from all tabs
-                    tabLinks.forEach(tab => tab.classList.remove('active'));
-                    
-                    // Add active class to clicked tab
-                    link.classList.add('active');
-                    
-                    // Show/hide jobs based on tab
-                    const tabType = link.getAttribute('data-tab');
-                    if (tabType === 'active') {
-                        activeJobs.forEach(job => job.style.display = 'block');
-                        closedJobs.forEach(job => job.style.display = 'none');
-                    } else if (tabType === 'closed') {
-                        activeJobs.forEach(job => job.style.display = 'none');
-                        closedJobs.forEach(job => job.style.display = 'block');
-                    }
-                });
-            });
+            // Tab switching is now handled by server-side routing
         })();
     </script>
 </body>

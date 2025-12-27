@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\ApplicationRequest;
 use App\Models\Application;
 use App\Models\Job;
+use App\Models\Scout;
 use App\Models\Thread;
 use App\Services\ApplicationService;
 
@@ -65,10 +66,32 @@ class ApplicationController extends Controller
             return redirect('/freelancer/jobs')->with('error', '既に応募済みですがスレッドが見つかりません');
         }
 
+        // ヘッダー用の応募数とスカウト数を取得
+        $applicationCount = Application::query()
+            ->where('freelancer_id', $freelancer->id)
+            ->count();
+        $scoutCount = Scout::query()
+            ->where('freelancer_id', $freelancer->id)
+            ->count();
+
+        // ユーザー名の最初の文字を取得（アバター表示用）
+        $userInitial = 'U';
+        if ($freelancer !== null && !empty($freelancer->display_name)) {
+            $userInitial = mb_substr($freelancer->display_name, 0, 1);
+        } elseif (!empty($user->email)) {
+            $userInitial = mb_substr($user->email, 0, 1);
+        }
+
         // 応募入力画面を返す
         return view('freelancer.applications.create', [
             // 画面に案件情報を渡す（企業名表示のため company も読み込む）
             'job' => $job->load('company'),
+            // ヘッダー用の応募数
+            'applicationCount' => $applicationCount,
+            // ヘッダー用のスカウト数
+            'scoutCount' => $scoutCount,
+            // ユーザー名の最初の文字
+            'userInitial' => $userInitial,
         ]);
     }
 

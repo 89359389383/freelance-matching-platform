@@ -374,19 +374,23 @@
     <header class="header">
         <div class="header-content">
             <nav class="nav-links">
-                <a href="#" class="nav-link active">案件一覧</a>
-                <a href="#" class="nav-link has-badge">
+                <a href="{{ route('freelancer.jobs.index') }}" class="nav-link active">案件一覧</a>
+                <a href="{{ route('freelancer.applications.index') }}" class="nav-link has-badge">
                     応募した案件
-                    <span class="badge">3</span>
+                    @if(($applicationCount ?? 0) > 0)
+                        <span class="badge">{{ $applicationCount }}</span>
+                    @endif
                 </a>
-                <a href="#" class="nav-link has-badge">
+                <a href="{{ route('freelancer.scouts.index') }}" class="nav-link has-badge">
                     スカウト
-                    <span class="badge">1</span>
+                    @if(($scoutCount ?? 0) > 0)
+                        <span class="badge">{{ $scoutCount }}</span>
+                    @endif
                 </a>
             </nav>
             <div class="user-menu">
                 <div class="dropdown" id="userDropdown">
-                    <button class="user-avatar" id="userDropdownToggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userDropdownMenu">山</button>
+                    <button class="user-avatar" id="userDropdownToggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userDropdownMenu">{{ $userInitial ?? 'U' }}</button>
                     <div class="dropdown-content" id="userDropdownMenu" role="menu" aria-label="ユーザーメニュー">
                         <a href="{{ route('freelancer.profile.settings') }}" class="dropdown-item" role="menuitem">プロフィール設定</a>
                         <div class="dropdown-divider"></div>
@@ -403,51 +407,70 @@
     <main class="main-content">
         <div class="content-area">
             <div class="page-breadcrumbs" aria-label="パンくず">
-                <a href="#">案件一覧</a>
+                <a href="{{ route('freelancer.jobs.index') }}">案件一覧</a>
                 <span aria-hidden="true">/</span>
                 <span>案件詳細</span>
             </div>
 
             <section class="hero" aria-label="案件概要">
                 <div>
-                    <h1 class="hero-title">ECサイト機能拡張プロジェクト</h1>
-                    <div class="hero-company">株式会社AITECH</div>
+                    <h1 class="hero-title">{{ $job->title }}</h1>
+                    <div class="hero-company">{{ $job->company->name }}</div>
                 </div>
                 <div class="hero-meta" aria-label="タグ">
                     <span class="chip primary">公開中</span>
-                    <span class="chip">週20〜30時間 / 3ヶ月</span>
-                    <span class="chip">50〜70万円</span>
+                    <span class="chip">{{ $job->work_time_text }}</span>
+                    @php
+                        $rewardText = '';
+                        if ($job->reward_type === 'monthly') {
+                            $rewardText = $job->min_rate . '〜' . $job->max_rate . '万円';
+                        } else {
+                            $rewardText = number_format($job->min_rate) . '〜' . number_format($job->max_rate) . '円/時';
+                        }
+                    @endphp
+                    <span class="chip">{{ $rewardText }}</span>
                 </div>
 
                 <div class="job-details" aria-label="主要条件">
                     <div class="detail-item">
                         <div class="detail-label">報酬目安</div>
-                        <div class="detail-value">50〜70万円</div>
+                        <div class="detail-value">{{ $rewardText }}</div>
                     </div>
                     <div class="detail-item">
                         <div class="detail-label">想定稼働時間／期間</div>
-                        <div class="detail-value">週20〜30時間 / 3ヶ月</div>
+                        <div class="detail-value">{{ $job->work_time_text }}</div>
                     </div>
                 </div>
 
-                <div class="skills" aria-label="必要スキル">
-                    <span class="skill-tag">PHP</span>
-                    <span class="skill-tag">Laravel</span>
-                    <span class="skill-tag">JavaScript</span>
-                    <span class="skill-tag">Vue.js</span>
-                    <span class="skill-tag">MySQL</span>
-                </div>
+                @if($job->required_skills_text)
+                    @php
+                        $skills = explode(',', $job->required_skills_text);
+                    @endphp
+                    <div class="skills" aria-label="必要スキル">
+                        @foreach($skills as $skill)
+                            <span class="skill-tag">{{ trim($skill) }}</span>
+                        @endforeach
+                    </div>
+                @endif
             </section>
 
             <section class="section" aria-label="業務内容">
                 <div class="section-title">業務内容</div>
-                <p>既存ECサイトに新機能を追加するプロジェクトです。商品管理・管理画面改善・パフォーマンス改善などを担当します。</p>
+                <p>{{ $job->description }}</p>
             </section>
 
             <section class="section" aria-label="応募">
                 <div class="btn-row horizontal">
-                    <a href="#" class="btn btn-primary">応募する</a>
-                    <a href="#" class="btn btn-secondary">一覧に戻る</a>
+                    @if($alreadyApplied)
+                        @if($thread)
+                            <a href="{{ route('freelancer.threads.show', $thread->id) }}" class="btn btn-primary">応募済み（チャットを開く）</a>
+                        @else
+                            <button class="btn btn-primary" disabled>応募済み</button>
+                        @endif
+                    @else
+                        <a href="{{ route('freelancer.jobs.apply.create', $job->id) }}" class="btn btn-primary">応募する</a>
+                    @endif
+                    <a href="{{ route('freelancer.jobs.index') }}" class="btn btn-secondary">一覧に戻る</a>
                 </div>
             </section>
         </div>

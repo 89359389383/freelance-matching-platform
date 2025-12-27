@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Application;
+use App\Models\Scout;
 use App\Models\Thread;
 
 class FreelancerApplicationController extends Controller
@@ -85,12 +86,34 @@ class FreelancerApplicationController extends Controller
             return $app;
         });
 
+        // ヘッダー用の応募数とスカウト数を取得
+        $applicationCount = Application::query()
+            ->where('freelancer_id', $freelancer->id)
+            ->count();
+        $scoutCount = Scout::query()
+            ->where('freelancer_id', $freelancer->id)
+            ->count();
+
+        // ユーザー名の最初の文字を取得（アバター表示用）
+        $userInitial = 'U';
+        if ($freelancer !== null && !empty($freelancer->display_name)) {
+            $userInitial = mb_substr($freelancer->display_name, 0, 1);
+        } elseif (!empty($user->email)) {
+            $userInitial = mb_substr($user->email, 0, 1);
+        }
+
         // 一覧ビューへ返す
         return view('freelancer.applications.index', [
             // 表示用応募一覧
             'applications' => $applications,
             // タブ制御用
             'status' => $status,
+            // ヘッダー用の応募数
+            'applicationCount' => $applicationCount,
+            // ヘッダー用のスカウト数
+            'scoutCount' => $scoutCount,
+            // ユーザー名の最初の文字
+            'userInitial' => $userInitial,
         ]);
     }
 }

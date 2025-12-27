@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Application;
 use App\Models\Job;
+use App\Models\Scout;
 use App\Models\Thread;
 
 class FreelancerJobController extends Controller
@@ -55,12 +56,66 @@ class FreelancerJobController extends Controller
         // 一覧をページングして取得する（大量データ想定）
         $jobs = $query->orderByDesc('id')->paginate(20)->withQueryString();
 
+        // フリーランスプロフィールを取得（応募済み判定に必要）
+        $freelancer = $user->freelancer;
+
+        // 各案件に対して応募済みかどうかを判定する
+        $appliedJobIds = [];
+        $threadMap = [];
+        $applicationCount = 0;
+        $scoutCount = 0;
+        if ($freelancer !== null) {
+            $appliedJobIds = Application::query()
+                ->where('freelancer_id', $freelancer->id)
+                ->whereIn('job_id', $jobs->pluck('id'))
+                ->pluck('job_id')
+                ->toArray();
+
+            // 応募済み案件のスレッド情報を取得
+            if (!empty($appliedJobIds)) {
+                $threads = Thread::query()
+                    ->where('freelancer_id', $freelancer->id)
+                    ->whereIn('job_id', $appliedJobIds)
+                    ->get()
+                    ->keyBy('job_id');
+                $threadMap = $threads->toArray();
+            }
+
+            // ヘッダー用の応募数とスカウト数を取得
+            $applicationCount = Application::query()
+                ->where('freelancer_id', $freelancer->id)
+                ->count();
+            $scoutCount = Scout::query()
+                ->where('freelancer_id', $freelancer->id)
+                ->count();
+        }
+
+        // ユーザー名の最初の文字を取得（アバター表示用）
+        $userInitial = 'U';
+        if ($freelancer !== null && !empty($freelancer->display_name)) {
+            $userInitial = mb_substr($freelancer->display_name, 0, 1);
+        } elseif (!empty($user->email)) {
+            $userInitial = mb_substr($user->email, 0, 1);
+        }
+
         // 一覧ビューへ返す
         return view('freelancer.jobs.index', [
             // 画面表示用の案件一覧
             'jobs' => $jobs,
             // 入力した検索キーワード（画面で保持するため）
             'keyword' => $keyword,
+            // 応募済み案件IDの配列
+            'appliedJobIds' => $appliedJobIds,
+            // 案件IDをキーとしたスレッドマップ
+            'threadMap' => $threadMap,
+            // フリーランス情報（チャット導線用）
+            'freelancer' => $freelancer,
+            // ヘッダー用の応募数
+            'applicationCount' => $applicationCount,
+            // ヘッダー用のスカウト数
+            'scoutCount' => $scoutCount,
+            // ユーザー名の最初の文字
+            'userInitial' => $userInitial,
         ]);
     }
 
@@ -108,6 +163,22 @@ class FreelancerJobController extends Controller
                 ->first();
         }
 
+        // ヘッダー用の応募数とスカウト数を取得
+        $applicationCount = Application::query()
+            ->where('freelancer_id', $freelancer->id)
+            ->count();
+        $scoutCount = Scout::query()
+            ->where('freelancer_id', $freelancer->id)
+            ->count();
+
+        // ユーザー名の最初の文字を取得（アバター表示用）
+        $userInitial = 'U';
+        if ($freelancer !== null && !empty($freelancer->display_name)) {
+            $userInitial = mb_substr($freelancer->display_name, 0, 1);
+        } elseif (!empty($user->email)) {
+            $userInitial = mb_substr($user->email, 0, 1);
+        }
+
         // 詳細ビューへ返す
         return view('freelancer.jobs.show', [
             // 案件詳細（企業名表示のため company も読み込む）
@@ -116,6 +187,12 @@ class FreelancerJobController extends Controller
             'alreadyApplied' => $alreadyApplied,
             // 応募済みの場合のスレッド（チャット導線用）
             'thread' => $thread,
+            // ヘッダー用の応募数
+            'applicationCount' => $applicationCount,
+            // ヘッダー用のスカウト数
+            'scoutCount' => $scoutCount,
+            // ユーザー名の最初の文字
+            'userInitial' => $userInitial,
         ]);
     }
 }
