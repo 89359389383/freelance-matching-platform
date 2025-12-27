@@ -79,9 +79,14 @@ class CompanyProfileController extends Controller
             abort(403);
         }
 
+        // 企業プロフィールが無い場合は先に登録へ誘導する
+        if (!$user->company()->exists()) {
+            return redirect('/company/profile')->with('error', '先に企業プロフィールを登録してください');
+        }
+
         // 設定画面のビューを返す
         return view('company.profile.settings', [
-            // 企業プロフィールがあれば渡しておく
+            // 企業プロフィールを渡す
             'company' => $user->company,
         ]);
     }

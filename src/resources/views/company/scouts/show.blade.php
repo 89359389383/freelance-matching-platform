@@ -199,12 +199,22 @@
             <nav class="nav-links">
                 <a href="{{ route('company.freelancers.index') }}" class="nav-link">フリーランス一覧</a>
                 <a href="{{ route('company.jobs.index') }}" class="nav-link">案件一覧</a>
-                <a href="{{ route('company.applications.index') }}" class="nav-link has-badge">応募された案件 <span class="badge">3</span></a>
-                <a href="{{ route('company.scouts.index') }}" class="nav-link has-badge active">スカウト <span class="badge">1</span></a>
+                <a href="{{ route('company.applications.index') }}" class="nav-link {{ ($unreadApplicationCount ?? 0) > 0 ? 'has-badge' : '' }}">
+                    応募された案件
+                    @if(($unreadApplicationCount ?? 0) > 0)
+                        <span class="badge">{{ $unreadApplicationCount }}</span>
+                    @endif
+                </a>
+                <a href="{{ route('company.scouts.index') }}" class="nav-link {{ ($unreadScoutCount ?? 0) > 0 ? 'has-badge' : '' }} active">
+                    スカウト
+                    @if(($unreadScoutCount ?? 0) > 0)
+                        <span class="badge">{{ $unreadScoutCount }}</span>
+                    @endif
+                </a>
             </nav>
             <div class="user-menu">
                 <div class="dropdown" id="userDropdown">
-                    <button class="user-avatar" id="userDropdownToggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userDropdownMenu">企</button>
+                    <button class="user-avatar" id="userDropdownToggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userDropdownMenu">{{ $userInitial ?? '企' }}</button>
                     <div class="dropdown-content" id="userDropdownMenu" role="menu" aria-label="ユーザーメニュー">
                         <a href="{{ route('company.profile.settings') }}" class="dropdown-item" role="menuitem">プロフィール設定</a>
                         <div class="dropdown-divider"></div>

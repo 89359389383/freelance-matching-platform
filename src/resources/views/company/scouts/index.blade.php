@@ -171,12 +171,22 @@
             <nav class="nav-links">
                 <a href="{{ route('company.freelancers.index') }}" class="nav-link">フリーランス一覧</a>
                 <a href="{{ route('company.jobs.index') }}" class="nav-link">案件一覧</a>
-                <a href="{{ route('company.applications.index') }}" class="nav-link has-badge">応募された案件 <span class="badge">3</span></a>
-                <a href="{{ route('company.scouts.index') }}" class="nav-link has-badge active">スカウト <span class="badge">1</span></a>
+                <a href="{{ route('company.applications.index') }}" class="nav-link {{ ($unreadApplicationCount ?? 0) > 0 ? 'has-badge' : '' }}">
+                    応募された案件
+                    @if(($unreadApplicationCount ?? 0) > 0)
+                        <span class="badge">{{ $unreadApplicationCount }}</span>
+                    @endif
+                </a>
+                <a href="{{ route('company.scouts.index') }}" class="nav-link {{ ($unreadScoutCount ?? 0) > 0 ? 'has-badge' : '' }} active">
+                    スカウト
+                    @if(($unreadScoutCount ?? 0) > 0)
+                        <span class="badge">{{ $unreadScoutCount }}</span>
+                    @endif
+                </a>
             </nav>
             <div class="user-menu">
                 <div class="dropdown" id="userDropdown">
-                    <button class="user-avatar" id="userDropdownToggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userDropdownMenu">企</button>
+                    <button class="user-avatar" id="userDropdownToggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userDropdownMenu">{{ $userInitial ?? '企' }}</button>
                     <div class="dropdown-content" id="userDropdownMenu" role="menu" aria-label="ユーザーメニュー">
                         <a href="{{ route('company.profile.settings') }}" class="dropdown-item" role="menuitem">プロフィール設定</a>
                         <div class="dropdown-divider"></div>
@@ -193,44 +203,71 @@
     <main class="main-content">
         <div class="topbar">
             <h1 class="page-title">スカウト一覧</h1>
-            <a class="btn btn-primary" href="#">新規スカウト</a>
+            <a class="btn btn-primary" href="{{ route('company.freelancers.index') }}">新規スカウト</a>
         </div>
 
         <div class="list">
-            <article class="card">
-                <div class="row">
-                    <div class="left">
-                        <div class="avatar" aria-hidden="true">山</div>
-                        <div>
-                            <div class="name">山田 太郎</div>
-                            <div class="sub">フルスタックエンジニア</div>
+            @forelse($threads as $thread)
+                @php
+                    $freelancer = $thread->freelancer;
+                    $avatarText = mb_substr($freelancer->display_name ?? '未', 0, 1);
+                    $latestMessage = $thread->messages->first();
+                    $scout = $thread->scout ?? null;
+                    
+                    // 表示するメッセージを決定
+                    $displayMessage = '';
+                    if ($latestMessage) {
+                        $displayMessage = '直近メッセージ: 「' . mb_substr($latestMessage->body, 0, 50) . ($latestMessage->body > 50 ? '...' : '') . '」';
+                    } elseif ($scout && $scout->message) {
+                        $displayMessage = 'スカウト送信: 「' . mb_substr($scout->message, 0, 50) . ($scout->message > 50 ? '...' : '') . '」';
+                    } else {
+                        $displayMessage = 'メッセージがありません';
+                    }
+                @endphp
+                <article class="card">
+                    <div class="row">
+                        <div class="left">
+                            <div class="avatar" aria-hidden="true">{{ $avatarText }}</div>
+                            <div>
+                                <div class="name">{{ $freelancer->display_name ?? '未設定' }}</div>
+                                <div class="sub">{{ $freelancer->job_title ?? '' }}</div>
+                            </div>
+                        </div>
+                        <div class="pill {{ $thread->is_unread ? 'unread' : '' }}">
+                            {{ $thread->is_unread ? '未読 ' . ($thread->messages->whereNull('deleted_at')->where('sender_type', 'freelancer')->count() ?? 0) : '未読なし' }}
                         </div>
                     </div>
-                    <div class="pill unread">未読 1</div>
-                </div>
-                <div class="desc">スカウト送信: 「EC改善の案件でご相談したいです。まずは要件を共有させてください。」</div>
-                <div class="actions">
-                    <a class="btn btn-primary" href="#">チャット画面へ</a>
-                </div>
-            </article>
-
-            <article class="card">
-                <div class="row">
-                    <div class="left">
-                        <div class="avatar" aria-hidden="true">佐</div>
-                        <div>
-                            <div class="name">佐藤 花子</div>
-                            <div class="sub">モバイルエンジニア</div>
-                        </div>
+                    <div class="desc">{{ $displayMessage }}</div>
+                    <div class="actions">
+                        <a class="btn btn-primary" href="{{ route('company.threads.show', ['thread' => $thread->id]) }}">チャット画面へ</a>
                     </div>
-                    <div class="pill">未読なし</div>
+                </article>
+            @empty
+                <div style="text-align: center; padding: 3rem; color: #586069;">
+                    <p style="font-size: 1.1rem; font-weight: 700;">スカウトがありません</p>
                 </div>
-                <div class="desc">直近メッセージ: 「日程調整ありがとうございます。来週月曜の10時はいかがでしょうか？」</div>
-                <div class="actions">
-                    <a class="btn btn-primary" href="#">チャット画面へ</a>
-                </div>
-            </article>
+            @endforelse
         </div>
+        
+        @if($threads->hasPages())
+            <div style="margin-top: 2rem; display: flex; justify-content: center; gap: 0.5rem;">
+                @if($threads->onFirstPage())
+                    <span style="padding: 0.5rem 1rem; color: #586069;">前へ</span>
+                @else
+                    <a href="{{ $threads->previousPageUrl() }}" style="padding: 0.5rem 1rem; color: #0366d6; text-decoration: none; font-weight: 700;">前へ</a>
+                @endif
+                
+                <span style="padding: 0.5rem 1rem; color: #586069;">
+                    {{ $threads->currentPage() }} / {{ $threads->lastPage() }}
+                </span>
+                
+                @if($threads->hasMorePages())
+                    <a href="{{ $threads->nextPageUrl() }}" style="padding: 0.5rem 1rem; color: #0366d6; text-decoration: none; font-weight: 700;">次へ</a>
+                @else
+                    <span style="padding: 0.5rem 1rem; color: #586069;">次へ</span>
+                @endif
+            </div>
+        @endif
     </main>
 
     <script>

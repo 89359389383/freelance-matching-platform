@@ -87,6 +87,28 @@ class CompanyMessageController extends Controller
         // thread を開いたタイミングで既読扱いにする
         $messageService->markRead($thread, 'company');
 
+        // 応募に関連するthreadの未読数（企業側）
+        $unreadApplicationCount = Thread::query()
+            ->where('company_id', $company->id)
+            ->whereNotNull('job_id') // 応募はjob_idが必須
+            ->where('is_unread_for_company', true)
+            ->count();
+
+        // スカウトに関連するthreadの未読数（企業側、job_idがnullのもの）
+        $unreadScoutCount = Thread::query()
+            ->where('company_id', $company->id)
+            ->whereNull('job_id') // スカウトはjob_idがnull
+            ->where('is_unread_for_company', true)
+            ->count();
+
+        // ユーザー名の最初の文字を取得（アバター表示用）
+        $userInitial = '企';
+        if ($company !== null && !empty($company->name)) {
+            $userInitial = mb_substr($company->name, 0, 1);
+        } elseif (!empty($user->email)) {
+            $userInitial = mb_substr($user->email, 0, 1);
+        }
+
         // スレッド種別に応じてビューを返す
         if ($scout !== null && $application === null) {
             // スカウトチャットの場合はスカウト用ビュー
@@ -97,6 +119,11 @@ class CompanyMessageController extends Controller
                 'scout' => $scout,
                 // 会話履歴
                 'messages' => $thread->messages,
+                // ヘッダー用未読数
+                'unreadApplicationCount' => $unreadApplicationCount,
+                'unreadScoutCount' => $unreadScoutCount,
+                // ユーザー情報
+                'userInitial' => $userInitial,
             ]);
         }
 
@@ -108,6 +135,11 @@ class CompanyMessageController extends Controller
             'application' => $application,
             // 会話履歴
             'messages' => $thread->messages,
+            // ヘッダー用未読数
+            'unreadApplicationCount' => $unreadApplicationCount,
+            'unreadScoutCount' => $unreadScoutCount,
+            // ユーザー情報
+            'userInitial' => $userInitial,
         ]);
     }
 

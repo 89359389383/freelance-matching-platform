@@ -164,26 +164,54 @@
 
     <main class="main-content">
         <h1 class="page-title">企業プロフィール設定</h1>
+        
+        @if(session('success'))
+            <div style="background-color: #d4edda; color: #155724; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #c3e6cb;">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div style="background-color: #f8d7da; color: #721c24; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #f5c6cb;">
+                {{ session('error') }}
+            </div>
+        @endif
+
+        @if($errors->any())
+            <div style="background-color: #f8d7da; color: #721c24; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #f5c6cb;">
+                <ul style="margin: 0; padding-left: 1.5rem;">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <div class="panel">
-            <form action="#" method="post">
+            <form action="{{ route('company.profile.settings.update') }}" method="post">
+                @csrf
                 <div class="field">
-                    <label for="companyName">企業名（必須）</label>
-                    <input id="companyName" class="input" type="text" value="株式会社AITECH" required>
+                    <label for="name">企業名（必須）</label>
+                    <input id="name" name="name" class="input" type="text" value="{{ old('name', $company->name ?? '') }}" required>
                 </div>
                 <div class="field">
                     <label for="overview">会社概要（任意）</label>
-                    <textarea id="overview" class="textarea">企業向けSaaSとEC領域を中心にプロダクト開発を行っています。</textarea>
+                    <textarea id="overview" name="overview" class="textarea">{{ old('overview', $company->overview ?? '') }}</textarea>
                 </div>
                 <div class="field">
-                    <label for="contact">担当者名 / 部署（任意）</label>
-                    <input id="contact" class="input" type="text" value="山田 / 開発部">
+                    <label for="contact_name">担当者名（任意）</label>
+                    <input id="contact_name" name="contact_name" class="input" type="text" value="{{ old('contact_name', $company->contact_name ?? '') }}">
                 </div>
                 <div class="field">
-                    <label for="intro">自己紹介（任意）</label>
-                    <textarea id="intro" class="textarea">フリーランスの方と一緒に、スピード感を持って改善を進めたいです。リモート中心で進行します。</textarea>
+                    <label for="department">部署（任意）</label>
+                    <input id="department" name="department" class="input" type="text" value="{{ old('department', $company->department ?? '') }}">
+                </div>
+                <div class="field">
+                    <label for="introduction">自己紹介（任意）</label>
+                    <textarea id="introduction" name="introduction" class="textarea">{{ old('introduction', $company->introduction ?? '') }}</textarea>
                 </div>
                 <div class="btn-row">
-                    <a class="btn btn-secondary" href="#" onclick="return false;">キャンセル</a>
+                    <a class="btn btn-secondary" href="{{ route('company.freelancers.index') }}">キャンセル</a>
                     <button class="btn btn-primary" type="submit">更新</button>
                 </div>
             </form>

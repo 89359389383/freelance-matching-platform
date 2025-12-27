@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\ScoutRequest;
 use App\Models\Freelancer;
 use App\Models\Job;
+use App\Models\Scout;
 use App\Models\Thread;
 use App\Services\ScoutService;
 
@@ -146,27 +147,68 @@ class ScoutController extends Controller
             return redirect('/company/profile')->with('error', '先に企業プロフィールを登録してください');
         }
 
-        // スカウト一覧は company の thread を表示する
+        // スカウト一覧は company の thread を表示する（job_idがnullのもの）
         $threads = Thread::query()
             ->where('company_id', $company->id)
+            ->whereNull('job_id') // スカウトはjob_idがnull
             // 企業側は相手フリーランス・案件を表示する
             ->with(['freelancer', 'job'])
+            // 最新メッセージを取得
+            ->with(['messages' => function ($query) {
+                $query->whereNull('deleted_at')
+                    ->orderByDesc('sent_at')
+                    ->limit(1);
+            }])
             // 最新順
             ->orderByDesc('latest_message_at')
             ->paginate(20);
 
-        // 未読判定を付ける（threadのフラグを優先）
-        $threads->getCollection()->transform(function (Thread $thread) {
+        // 未読判定とスカウト情報を付ける
+        foreach ($threads->items() as $thread) {
             $thread->is_unread = (bool) $thread->is_unread_for_company;
 
-            // 付与した thread を返す
-            return $thread;
-        });
+            // スカウト情報を取得（job_idがnullのスカウト）
+            $scout = Scout::query()
+                ->where('company_id', $company->id)
+                ->where('freelancer_id', $thread->freelancer_id)
+                ->whereNull('job_id')
+                ->latest('id')
+                ->first();
+            
+            $thread->scout = $scout;
+        }
+
+        // 応募に関連するthreadの未読数（企業側）
+        $unreadApplicationCount = Thread::query()
+            ->where('company_id', $company->id)
+            ->whereNotNull('job_id') // 応募はjob_idが必須
+            ->where('is_unread_for_company', true)
+            ->count();
+
+        // スカウトに関連するthreadの未読数（企業側、job_idがnullのもの）
+        $unreadScoutCount = Thread::query()
+            ->where('company_id', $company->id)
+            ->whereNull('job_id') // スカウトはjob_idがnull
+            ->where('is_unread_for_company', true)
+            ->count();
+
+        // ユーザー名の最初の文字を取得（アバター表示用）
+        $userInitial = '企';
+        if ($company !== null && !empty($company->name)) {
+            $userInitial = mb_substr($company->name, 0, 1);
+        } elseif (!empty($user->email)) {
+            $userInitial = mb_substr($user->email, 0, 1);
+        }
 
         // 一覧ビューへ返す
         return view('company.scouts.index', [
             // 表示用スレッド一覧
             'threads' => $threads,
+            // ヘッダー用未読数
+            'unreadApplicationCount' => $unreadApplicationCount,
+            'unreadScoutCount' => $unreadScoutCount,
+            // ユーザー情報
+            'userInitial' => $userInitial,
         ]);
     }
 }
