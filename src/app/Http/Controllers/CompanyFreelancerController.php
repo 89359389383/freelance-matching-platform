@@ -80,6 +80,28 @@ class CompanyFreelancerController extends Controller
             }
         }
 
+        // 応募に関連するthreadの未読数（企業側）
+        $unreadApplicationCount = Thread::query()
+            ->where('company_id', $companyId)
+            ->whereNotNull('job_id') // 応募はjob_idが必須
+            ->where('is_unread_for_company', true)
+            ->count();
+
+        // スカウトに関連するthreadの未読数（企業側、job_idがnullのもの）
+        $unreadScoutCount = Thread::query()
+            ->where('company_id', $companyId)
+            ->whereNull('job_id') // スカウトはjob_idがnull
+            ->where('is_unread_for_company', true)
+            ->count();
+
+        // ユーザー名の最初の文字を取得（アバター表示用）
+        $userInitial = '企';
+        if ($user->company !== null && !empty($user->company->name)) {
+            $userInitial = mb_substr($user->company->name, 0, 1);
+        } elseif (!empty($user->email)) {
+            $userInitial = mb_substr($user->email, 0, 1);
+        }
+
         // 一覧ビューへ返す
         return view('company.freelancers.index', [
             // 表示用の一覧
@@ -88,6 +110,11 @@ class CompanyFreelancerController extends Controller
             'keyword' => $keyword,
             // スカウト済みフリーランスのスレッドIDマップ
             'scoutThreadMap' => $scoutThreadMap,
+            // ヘッダー用未読数
+            'unreadApplicationCount' => $unreadApplicationCount,
+            'unreadScoutCount' => $unreadScoutCount,
+            // ユーザー情報
+            'userInitial' => $userInitial,
         ]);
     }
 
@@ -112,10 +139,39 @@ class CompanyFreelancerController extends Controller
         // 表示用に必要なリレーションを読み込む
         $freelancer->load(['skills', 'customSkills', 'portfolios']);
 
+        $company = $user->company;
+
+        // 応募に関連するthreadの未読数（企業側）
+        $unreadApplicationCount = Thread::query()
+            ->where('company_id', $company->id)
+            ->whereNotNull('job_id') // 応募はjob_idが必須
+            ->where('is_unread_for_company', true)
+            ->count();
+
+        // スカウトに関連するthreadの未読数（企業側、job_idがnullのもの）
+        $unreadScoutCount = Thread::query()
+            ->where('company_id', $company->id)
+            ->whereNull('job_id') // スカウトはjob_idがnull
+            ->where('is_unread_for_company', true)
+            ->count();
+
+        // ユーザー名の最初の文字を取得（アバター表示用）
+        $userInitial = '企';
+        if ($company !== null && !empty($company->name)) {
+            $userInitial = mb_substr($company->name, 0, 1);
+        } elseif (!empty($user->email)) {
+            $userInitial = mb_substr($user->email, 0, 1);
+        }
+
         // 詳細ビューへ返す
         return view('company.freelancers.show', [
             // 表示対象のフリーランス
             'freelancer' => $freelancer,
+            // ヘッダー用未読数
+            'unreadApplicationCount' => $unreadApplicationCount,
+            'unreadScoutCount' => $unreadScoutCount,
+            // ユーザー情報
+            'userInitial' => $userInitial,
         ]);
     }
 }

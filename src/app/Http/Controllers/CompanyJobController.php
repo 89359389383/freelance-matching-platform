@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\JobRequest;
 use App\Models\Job;
+use App\Models\Thread;
 use App\Services\JobService;
 
 class CompanyJobController extends Controller
@@ -72,6 +73,28 @@ class CompanyJobController extends Controller
         // 自社案件一覧をページングして取得する
         $jobs = $query->orderByDesc('id')->paginate(20)->withQueryString();
 
+        // 応募に関連するthreadの未読数（企業側）
+        $unreadApplicationCount = Thread::query()
+            ->where('company_id', $company->id)
+            ->whereNotNull('job_id') // 応募はjob_idが必須
+            ->where('is_unread_for_company', true)
+            ->count();
+
+        // スカウトに関連するthreadの未読数（企業側、job_idがnullのもの）
+        $unreadScoutCount = Thread::query()
+            ->where('company_id', $company->id)
+            ->whereNull('job_id') // スカウトはjob_idがnull
+            ->where('is_unread_for_company', true)
+            ->count();
+
+        // ユーザー名の最初の文字を取得（アバター表示用）
+        $userInitial = '企';
+        if ($company !== null && !empty($company->name)) {
+            $userInitial = mb_substr($company->name, 0, 1);
+        } elseif (!empty($user->email)) {
+            $userInitial = mb_substr($user->email, 0, 1);
+        }
+
         // 一覧ビューを返す
         return view('company.jobs.index', [
             // 表示用データ
@@ -82,6 +105,11 @@ class CompanyJobController extends Controller
             'keyword' => $keyword,
             // 企業情報
             'company' => $company,
+            // ヘッダー用未読数
+            'unreadApplicationCount' => $unreadApplicationCount,
+            'unreadScoutCount' => $unreadScoutCount,
+            // ユーザー情報
+            'userInitial' => $userInitial,
         ]);
     }
 
@@ -98,8 +126,43 @@ class CompanyJobController extends Controller
             abort(403);
         }
 
-        // フォームビューを返すだけ（ロジックなし）
-        return view('company.jobs.create');
+        $company = $user->company;
+
+        // 企業プロフィール未登録なら先に登録へ誘導する
+        if ($company === null) {
+            return redirect('/company/profile')->with('error', '先に企業プロフィールを登録してください');
+        }
+
+        // 応募に関連するthreadの未読数（企業側）
+        $unreadApplicationCount = Thread::query()
+            ->where('company_id', $company->id)
+            ->whereNotNull('job_id') // 応募はjob_idが必須
+            ->where('is_unread_for_company', true)
+            ->count();
+
+        // スカウトに関連するthreadの未読数（企業側、job_idがnullのもの）
+        $unreadScoutCount = Thread::query()
+            ->where('company_id', $company->id)
+            ->whereNull('job_id') // スカウトはjob_idがnull
+            ->where('is_unread_for_company', true)
+            ->count();
+
+        // ユーザー名の最初の文字を取得（アバター表示用）
+        $userInitial = '企';
+        if ($company !== null && !empty($company->name)) {
+            $userInitial = mb_substr($company->name, 0, 1);
+        } elseif (!empty($user->email)) {
+            $userInitial = mb_substr($user->email, 0, 1);
+        }
+
+        // フォームビューを返す
+        return view('company.jobs.create', [
+            // ヘッダー用未読数
+            'unreadApplicationCount' => $unreadApplicationCount,
+            'unreadScoutCount' => $unreadScoutCount,
+            // ユーザー情報
+            'userInitial' => $userInitial,
+        ]);
     }
 
     /**
@@ -152,9 +215,38 @@ class CompanyJobController extends Controller
             abort(403);
         }
 
+        $company = $user->company;
+
+        // 応募に関連するthreadの未読数（企業側）
+        $unreadApplicationCount = Thread::query()
+            ->where('company_id', $company->id)
+            ->whereNotNull('job_id') // 応募はjob_idが必須
+            ->where('is_unread_for_company', true)
+            ->count();
+
+        // スカウトに関連するthreadの未読数（企業側、job_idがnullのもの）
+        $unreadScoutCount = Thread::query()
+            ->where('company_id', $company->id)
+            ->whereNull('job_id') // スカウトはjob_idがnull
+            ->where('is_unread_for_company', true)
+            ->count();
+
+        // ユーザー名の最初の文字を取得（アバター表示用）
+        $userInitial = '企';
+        if ($company !== null && !empty($company->name)) {
+            $userInitial = mb_substr($company->name, 0, 1);
+        } elseif (!empty($user->email)) {
+            $userInitial = mb_substr($user->email, 0, 1);
+        }
+
         // 編集ビューを返す
         return view('company.jobs.edit', [
             'job' => $job,
+            // ヘッダー用未読数
+            'unreadApplicationCount' => $unreadApplicationCount,
+            'unreadScoutCount' => $unreadScoutCount,
+            // ユーザー情報
+            'userInitial' => $userInitial,
         ]);
     }
 

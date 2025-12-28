@@ -466,13 +466,20 @@
         <div class="header-content">
             <nav class="nav-links">
                 <a href="{{ route('freelancer.jobs.index') }}" class="nav-link">案件一覧</a>
-                <a href="{{ route('freelancer.applications.index') }}" class="nav-link has-badge">
+                @php
+                    $totalUnreadCount = ($unreadApplicationCount ?? 0) + ($unreadScoutCount ?? 0);
+                @endphp
+                <a href="{{ route('freelancer.applications.index') }}" class="nav-link {{ $totalUnreadCount > 0 ? 'has-badge' : '' }}">
                     応募した案件
-                    <span class="badge">3</span>
+                    @if($totalUnreadCount > 0)
+                        <span class="badge">{{ $totalUnreadCount }}</span>
+                    @endif
                 </a>
-                <a href="{{ route('freelancer.scouts.index') }}" class="nav-link has-badge">
+                <a href="{{ route('freelancer.scouts.index') }}" class="nav-link {{ $totalUnreadCount > 0 ? 'has-badge' : '' }}">
                     スカウト
-                    <span class="badge">1</span>
+                    @if($totalUnreadCount > 0)
+                        <span class="badge">{{ $totalUnreadCount }}</span>
+                    @endif
                 </a>
             </nav>
             <div class="user-menu">

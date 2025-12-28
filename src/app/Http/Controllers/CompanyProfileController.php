@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\CompanyRegisterRequest;
 use App\Http\Requests\CompanyProfileUpdateRequest;
+use App\Models\Thread;
 use App\Services\CompanyProfileService;
 
 class CompanyProfileController extends Controller
@@ -84,10 +85,39 @@ class CompanyProfileController extends Controller
             return redirect('/company/profile')->with('error', '先に企業プロフィールを登録してください');
         }
 
+        $company = $user->company;
+
+        // 応募に関連するthreadの未読数（企業側）
+        $unreadApplicationCount = Thread::query()
+            ->where('company_id', $company->id)
+            ->whereNotNull('job_id') // 応募はjob_idが必須
+            ->where('is_unread_for_company', true)
+            ->count();
+
+        // スカウトに関連するthreadの未読数（企業側、job_idがnullのもの）
+        $unreadScoutCount = Thread::query()
+            ->where('company_id', $company->id)
+            ->whereNull('job_id') // スカウトはjob_idがnull
+            ->where('is_unread_for_company', true)
+            ->count();
+
+        // ユーザー名の最初の文字を取得（アバター表示用）
+        $userInitial = '企';
+        if ($company !== null && !empty($company->name)) {
+            $userInitial = mb_substr($company->name, 0, 1);
+        } elseif (!empty($user->email)) {
+            $userInitial = mb_substr($user->email, 0, 1);
+        }
+
         // 設定画面のビューを返す
         return view('company.profile.settings', [
             // 企業プロフィールを渡す
-            'company' => $user->company,
+            'company' => $company,
+            // ヘッダー用未読数
+            'unreadApplicationCount' => $unreadApplicationCount,
+            'unreadScoutCount' => $unreadScoutCount,
+            // ユーザー情報
+            'userInitial' => $userInitial,
         ]);
     }
 

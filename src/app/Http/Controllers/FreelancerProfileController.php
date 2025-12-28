@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\FreelancerRegisterRequest;
 use App\Http\Requests\FreelancerProfileUpdateRequest;
+use App\Models\Thread;
 use App\Services\FreelancerProfileService;
 
 class FreelancerProfileController extends Controller
@@ -68,9 +69,40 @@ class FreelancerProfileController extends Controller
             $freelancer->load(['skills', 'customSkills', 'portfolios']);
         }
 
+        // 未読スカウト数を取得（ヘッダー用）
+        $unreadScoutCount = 0;
+        $unreadApplicationCount = 0;
+        if ($freelancer !== null) {
+            $unreadScoutCount = Thread::query()
+                ->where('freelancer_id', $freelancer->id)
+                ->whereNull('job_id')
+                ->where('is_unread_for_freelancer', true)
+                ->count();
+
+            // 未読応募数を取得（ヘッダー用）
+            $unreadApplicationCount = Thread::query()
+                ->where('freelancer_id', $freelancer->id)
+                ->whereNotNull('job_id')
+                ->where('is_unread_for_freelancer', true)
+                ->count();
+        }
+
+        // ユーザー名の最初の文字を取得（アバター表示用）
+        $userInitial = 'U';
+        if ($freelancer !== null && !empty($freelancer->display_name)) {
+            $userInitial = mb_substr($freelancer->display_name, 0, 1);
+        } elseif (!empty($user->email)) {
+            $userInitial = mb_substr($user->email, 0, 1);
+        }
+
         return view('freelancer.profile.settings', [
             'user' => $user,
             'freelancer' => $freelancer,
+            // ヘッダー用未読数
+            'unreadApplicationCount' => $unreadApplicationCount,
+            'unreadScoutCount' => $unreadScoutCount,
+            // ユーザー情報
+            'userInitial' => $userInitial,
         ]);
     }
 

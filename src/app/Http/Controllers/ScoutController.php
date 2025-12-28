@@ -59,12 +59,39 @@ class ScoutController extends Controller
                 ->findOrFail($jobId);
         }
 
+        // 応募に関連するthreadの未読数（企業側）
+        $unreadApplicationCount = Thread::query()
+            ->where('company_id', $company->id)
+            ->whereNotNull('job_id') // 応募はjob_idが必須
+            ->where('is_unread_for_company', true)
+            ->count();
+
+        // スカウトに関連するthreadの未読数（企業側、job_idがnullのもの）
+        $unreadScoutCount = Thread::query()
+            ->where('company_id', $company->id)
+            ->whereNull('job_id') // スカウトはjob_idがnull
+            ->where('is_unread_for_company', true)
+            ->count();
+
+        // ユーザー名の最初の文字を取得（アバター表示用）
+        $userInitial = '企';
+        if ($company !== null && !empty($company->name)) {
+            $userInitial = mb_substr($company->name, 0, 1);
+        } elseif (!empty($user->email)) {
+            $userInitial = mb_substr($user->email, 0, 1);
+        }
+
         // 入力フォームビューを返す
         return view('company.scouts.create', [
             // 表示用フリーランス
             'freelancer' => $freelancer,
             // 任意の紐付け案件
             'job' => $job,
+            // ヘッダー用未読数
+            'unreadApplicationCount' => $unreadApplicationCount,
+            'unreadScoutCount' => $unreadScoutCount,
+            // ユーザー情報
+            'userInitial' => $userInitial,
         ]);
     }
 

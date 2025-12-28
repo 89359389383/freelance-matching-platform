@@ -402,8 +402,21 @@
             <nav class="nav-links">
                 <a href="{{ route('company.freelancers.index') }}" class="nav-link">フリーランス一覧</a>
                 <a href="{{ route('company.jobs.index') }}" class="nav-link active">案件一覧</a>
-                <a href="{{ route('company.applications.index') }}" class="nav-link has-badge">応募された案件 <span class="badge">3</span></a>
-                <a href="{{ route('company.scouts.index') }}" class="nav-link has-badge">スカウト <span class="badge">1</span></a>
+                @php
+                    $totalUnreadCount = ($unreadApplicationCount ?? 0) + ($unreadScoutCount ?? 0);
+                @endphp
+                <a href="{{ route('company.applications.index') }}" class="nav-link {{ $totalUnreadCount > 0 ? 'has-badge' : '' }}">
+                    応募された案件
+                    @if($totalUnreadCount > 0)
+                        <span class="badge">{{ $totalUnreadCount }}</span>
+                    @endif
+                </a>
+                <a href="{{ route('company.scouts.index') }}" class="nav-link {{ $totalUnreadCount > 0 ? 'has-badge' : '' }}">
+                    スカウト
+                    @if($totalUnreadCount > 0)
+                        <span class="badge">{{ $totalUnreadCount }}</span>
+                    @endif
+                </a>
             </nav>
             <div class="user-menu">
                 <div class="dropdown" id="userDropdown">
@@ -526,7 +539,6 @@
                 @empty
                     <div style="text-align: center; padding: 3rem; color: #586069;">
                         <p style="font-size: 1.1rem; margin-bottom: 1rem;">案件がありません</p>
-                        <a href="{{ route('company.jobs.create') }}" class="btn btn-primary">新規案件を登録</a>
                     </div>
                 @endforelse
             </div>

@@ -171,16 +171,19 @@
             <nav class="nav-links">
                 <a href="{{ route('company.freelancers.index') }}" class="nav-link">フリーランス一覧</a>
                 <a href="{{ route('company.jobs.index') }}" class="nav-link">案件一覧</a>
-                <a href="{{ route('company.applications.index') }}" class="nav-link {{ ($unreadApplicationCount ?? 0) > 0 ? 'has-badge' : '' }}">
+                @php
+                    $totalUnreadCount = ($unreadApplicationCount ?? 0) + ($unreadScoutCount ?? 0);
+                @endphp
+                <a href="{{ route('company.applications.index') }}" class="nav-link {{ $totalUnreadCount > 0 ? 'has-badge' : '' }}">
                     応募された案件
-                    @if(($unreadApplicationCount ?? 0) > 0)
-                        <span class="badge">{{ $unreadApplicationCount }}</span>
+                    @if($totalUnreadCount > 0)
+                        <span class="badge">{{ $totalUnreadCount }}</span>
                     @endif
                 </a>
-                <a href="{{ route('company.scouts.index') }}" class="nav-link {{ ($unreadScoutCount ?? 0) > 0 ? 'has-badge' : '' }} active">
+                <a href="{{ route('company.scouts.index') }}" class="nav-link {{ $totalUnreadCount > 0 ? 'has-badge' : '' }} active">
                     スカウト
-                    @if(($unreadScoutCount ?? 0) > 0)
-                        <span class="badge">{{ $unreadScoutCount }}</span>
+                    @if($totalUnreadCount > 0)
+                        <span class="badge">{{ $totalUnreadCount }}</span>
                     @endif
                 </a>
             </nav>
@@ -203,7 +206,6 @@
     <main class="main-content">
         <div class="topbar">
             <h1 class="page-title">スカウト一覧</h1>
-            <a class="btn btn-primary" href="{{ route('company.freelancers.index') }}">新規スカウト</a>
         </div>
 
         <div class="list">

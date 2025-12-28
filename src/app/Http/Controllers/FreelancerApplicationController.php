@@ -94,6 +94,20 @@ class FreelancerApplicationController extends Controller
             ->where('freelancer_id', $freelancer->id)
             ->count();
 
+        // 未読スカウト数を取得（ヘッダー用）
+        $unreadScoutCount = Thread::query()
+            ->where('freelancer_id', $freelancer->id)
+            ->whereNull('job_id')
+            ->where('is_unread_for_freelancer', true)
+            ->count();
+
+        // 未読応募数を取得（ヘッダー用）
+        $unreadApplicationCount = Thread::query()
+            ->where('freelancer_id', $freelancer->id)
+            ->whereNotNull('job_id')
+            ->where('is_unread_for_freelancer', true)
+            ->count();
+
         // ユーザー名の最初の文字を取得（アバター表示用）
         $userInitial = 'U';
         if ($freelancer !== null && !empty($freelancer->display_name)) {
@@ -112,6 +126,9 @@ class FreelancerApplicationController extends Controller
             'applicationCount' => $applicationCount,
             // ヘッダー用のスカウト数
             'scoutCount' => $scoutCount,
+            // ヘッダー用未読数
+            'unreadApplicationCount' => $unreadApplicationCount,
+            'unreadScoutCount' => $unreadScoutCount,
             // ユーザー名の最初の文字
             'userInitial' => $userInitial,
         ]);
