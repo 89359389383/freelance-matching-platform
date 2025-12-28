@@ -433,7 +433,15 @@
                     <div class="desc" id="dPortfolio" style="word-break: break-all; overflow-wrap: break-word;"></div>
 
                     <div class="detail-actions">
-                        <a class="btn btn-primary" id="dScoutLink" href="{{ $freelancers->isNotEmpty() ? route('company.scouts.create', ['freelancer_id' => $freelancers->first()->id]) : '#' }}">スカウト</a>
+                        @php
+                            $firstFreelancer = $freelancers->first();
+                            $firstThreadId = $firstFreelancer ? ($scoutThreadMap[$firstFreelancer->id] ?? null) : null;
+                        @endphp
+                        @if($firstThreadId)
+                            <a class="btn btn-secondary" id="dScoutLink" href="{{ route('company.threads.show', ['thread' => $firstThreadId]) }}">スカウト済み</a>
+                        @else
+                            <a class="btn btn-primary" id="dScoutLink" href="{{ $firstFreelancer ? route('company.scouts.create', ['freelancer_id' => $firstFreelancer->id]) : '#' }}">スカウト</a>
+                        @endif
                     </div>
                 </div>
                 <div id="detailEmpty" style="text-align: center; padding: 2rem; color: #586069;">
@@ -463,7 +471,7 @@
         (function () {
             // フリーランスデータをJSON形式で埋め込む
             @php
-                $freelancerDataArray = $freelancers->map(function($freelancer) {
+                $freelancerDataArray = $freelancers->map(function($freelancer) use ($scoutThreadMap) {
                     $allSkills = $freelancer->skills->pluck('name')->merge($freelancer->customSkills->pluck('name'));
                     $workHours = $freelancer->min_hours_per_week . '〜' . $freelancer->max_hours_per_week . 'h';
                     $rateText = ($freelancer->min_rate / 10000) . '〜' . ($freelancer->max_rate / 10000) . '万';
@@ -478,6 +486,7 @@
                         'workHours' => $workHours,
                         'rateText' => $rateText,
                         'portfolios' => $freelancer->portfolios->pluck('url')->toArray(),
+                        'threadId' => $scoutThreadMap[$freelancer->id] ?? null,
                     ];
                 })->values()->toArray();
             @endphp
@@ -540,7 +549,20 @@
                     dPortfolio.innerHTML = '<span style="color: #586069;">（未設定）</span>';
                 }
                 
-                dScoutLink.href = '{{ route("company.scouts.create") }}?freelancer_id=' + id;
+                // スカウト済みかどうかでボタンの表示とリンクを変更
+                if (x.threadId) {
+                    // スカウト済みの場合
+                    dScoutLink.textContent = 'スカウト済み';
+                    dScoutLink.href = '{{ route("company.threads.show", ["thread" => ":threadId"]) }}'.replace(':threadId', x.threadId);
+                    dScoutLink.classList.remove('btn-primary');
+                    dScoutLink.classList.add('btn-secondary');
+                } else {
+                    // スカウト未済の場合
+                    dScoutLink.textContent = 'スカウト';
+                    dScoutLink.href = '{{ route("company.scouts.create") }}?freelancer_id=' + id;
+                    dScoutLink.classList.remove('btn-secondary');
+                    dScoutLink.classList.add('btn-primary');
+                }
             };
 
             const selectCard = (card) => {

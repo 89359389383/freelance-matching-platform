@@ -332,19 +332,23 @@
     <header class="header">
         <div class="header-content">
             <nav class="nav-links">
-                <a href="#" class="nav-link">案件一覧</a>
-                <a href="#" class="nav-link has-badge">
+                <a href="{{ route('freelancer.jobs.index') }}" class="nav-link">案件一覧</a>
+                <a href="{{ route('freelancer.applications.index') }}" class="nav-link has-badge">
                     応募した案件
-                    <span class="badge">3</span>
+                    @if(isset($applicationCount) && $applicationCount > 0)
+                        <span class="badge">{{ $applicationCount }}</span>
+                    @endif
                 </a>
-                <a href="#" class="nav-link has-badge active">
+                <a href="{{ route('freelancer.scouts.index') }}" class="nav-link has-badge active">
                     スカウト
-                    <span class="badge">1</span>
+                    @if(isset($scoutCount) && $scoutCount > 0)
+                        <span class="badge">{{ $scoutCount }}</span>
+                    @endif
                 </a>
             </nav>
             <div class="user-menu">
                 <div class="dropdown" id="userDropdown">
-                    <button class="user-avatar" id="userDropdownToggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userDropdownMenu">山</button>
+                    <button class="user-avatar" id="userDropdownToggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userDropdownMenu">{{ $userInitial ?? 'U' }}</button>
                     <div class="dropdown-content" id="userDropdownMenu" role="menu" aria-label="ユーザーメニュー">
                         <a href="{{ route('freelancer.profile.settings') }}" class="dropdown-item" role="menuitem">プロフィール設定</a>
                         <div class="dropdown-divider"></div>
@@ -364,31 +368,58 @@
             <p class="page-subtitle">スカウト送信時のメッセージを先頭に表示します。開いた時点で未読が解除されます。</p>
 
             <section class="panel" aria-label="チャット">
-                <div class="panel-title">株式会社AITECH</div>
+                <div class="panel-title">{{ $thread->company->name ?? '企業名不明' }}</div>
 
                 <div class="messages" id="messages" aria-label="メッセージ一覧" style="max-height:520px;overflow:auto;display:grid;gap:0.85rem;">
-                    <div class="bubble-row" style="display:flex;align-items:flex-end;gap:0.75rem;">
-                        <div class="avatar" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);display:grid;place-items:center;color:#fff;font-weight:900;">A</div>
-                        <div class="bubble" style="max-width:74%;padding:0.9rem 1rem;border-radius:14px;border:1px solid #e1e4e8;background:#fff;">
-                            <p style="color:#24292e;font-size:0.95rem;line-height:1.6;">Laravel案件のご相談です。週20〜30hでご参画いただけませんか？</p>
-                            <small style="display:block;margin-top:0.4rem;color:#6a737d;font-weight:800;font-size:0.8rem;">12/22 09:05</small>
-                        </div>
-                    </div>
-                    <div class="bubble-row me" style="display:flex;align-items:flex-end;gap:0.75rem;justify-content:flex-end;">
-                        <div class="bubble me" style="max-width:74%;padding:0.9rem 1rem;border-radius:14px;border:1px solid #c8e1ff;background:#f1f8ff;">
-                            <p style="color:#24292e;font-size:0.95rem;line-height:1.6;">ご連絡ありがとうございます。週25h程度であれば参画可能です。詳細を伺えますか？</p>
-                            <small style="display:block;margin-top:0.4rem;color:#6a737d;font-weight:800;font-size:0.8rem;">12/22 09:10 <span style="margin-left:0.75rem;"><button type="button" style="background:none;border:none;color:#d73a49;font-weight:900;cursor:pointer;">削除</button></span></small>
-                        </div>
-                    </div>
+                    @php
+                        $companyInitial = mb_substr($thread->company->name ?? 'A', 0, 1);
+                    @endphp
+
+                    {{-- メッセージ履歴を表示 --}}
+                    @foreach($messages as $message)
+                        @if(is_null($message->deleted_at))
+                            @if($message->sender_type === 'company')
+                                <div class="bubble-row" style="display:flex;align-items:flex-end;gap:0.75rem;">
+                                    <div class="avatar" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);display:grid;place-items:center;color:#fff;font-weight:900;">{{ $companyInitial }}</div>
+                                    <div class="bubble" style="max-width:74%;padding:0.9rem 1rem;border-radius:14px;border:1px solid #e1e4e8;background:#fff;">
+                                        <p style="color:#24292e;font-size:0.95rem;line-height:1.6;">{{ $message->body }}</p>
+                                        <small style="display:block;margin-top:0.4rem;color:#6a737d;font-weight:800;font-size:0.8rem;">{{ $message->sent_at->format('m/d H:i') }}</small>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="bubble-row me" style="display:flex;align-items:flex-end;gap:0.75rem;justify-content:flex-end;">
+                                    <div class="bubble me" style="max-width:74%;padding:0.9rem 1rem;border-radius:14px;border:1px solid #c8e1ff;background:#f1f8ff;">
+                                        <p style="color:#24292e;font-size:0.95rem;line-height:1.6;">{{ $message->body }}</p>
+                                        <small style="display:block;margin-top:0.4rem;color:#6a737d;font-weight:800;font-size:0.8rem;">
+                                            {{ $message->sent_at->format('m/d H:i') }}
+                                            @php
+                                                $latestMessage = $messages->whereNull('deleted_at')->sortByDesc('sent_at')->first();
+                                            @endphp
+                                            @if($latestMessage && $latestMessage->id === $message->id && $message->sender_type === 'freelancer')
+                                                <span style="margin-left:0.75rem;">
+                                                    <form action="{{ route('freelancer.messages.destroy', ['message' => $message->id]) }}" method="POST" style="display:inline;" onsubmit="return confirm('このメッセージを削除しますか？');">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" style="background:none;border:none;color:#d73a49;font-weight:900;cursor:pointer;">削除</button>
+                                                    </form>
+                                                </span>
+                                            @endif
+                                        </small>
+                                    </div>
+                                </div>
+                            @endif
+                        @endif
+                    @endforeach
                 </div>
 
-                <form class="form" action="#" method="post" style="margin-top:1rem;">
+                <form class="form" action="{{ route('freelancer.threads.messages.store', ['thread' => $thread->id]) }}" method="post" style="margin-top:1rem;">
+                    @csrf
                     <div class="row">
                         <div class="label">メッセージ</div>
                         <input class="input" type="text" name="content" value="" placeholder="メッセージを入力…" required>
                     </div>
                     <div class="actions">
-                        <button class="btn btn-secondary" type="button" onclick="window.location.href='#'">戻る</button>
+                        <button class="btn btn-secondary" type="button" onclick="window.location.href='{{ route('freelancer.scouts.index') }}'">戻る</button>
                         <button class="btn btn-primary" type="submit">送信</button>
                     </div>
                 </form>

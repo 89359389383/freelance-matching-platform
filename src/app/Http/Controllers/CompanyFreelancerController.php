@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Freelancer;
+use App\Models\Thread;
 
 class CompanyFreelancerController extends Controller
 {
@@ -62,12 +63,31 @@ class CompanyFreelancerController extends Controller
         // 一覧はページングで取得する
         $freelancers = $query->orderByDesc('id')->paginate(20)->withQueryString();
 
+        // 企業IDを取得
+        $companyId = $user->company->id;
+
+        // 各フリーランスに対してスカウト済みかどうか（スレッドが存在するか）を確認
+        $scoutThreadMap = [];
+        foreach ($freelancers as $freelancer) {
+            // スカウトスレッド（job_idがnull）を探す
+            $thread = Thread::where('company_id', $companyId)
+                ->where('freelancer_id', $freelancer->id)
+                ->whereNull('job_id')
+                ->first();
+            
+            if ($thread) {
+                $scoutThreadMap[$freelancer->id] = $thread->id;
+            }
+        }
+
         // 一覧ビューへ返す
         return view('company.freelancers.index', [
             // 表示用の一覧
             'freelancers' => $freelancers,
             // 検索キーワードを保持する
             'keyword' => $keyword,
+            // スカウト済みフリーランスのスレッドIDマップ
+            'scoutThreadMap' => $scoutThreadMap,
         ]);
     }
 

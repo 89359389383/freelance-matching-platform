@@ -357,19 +357,23 @@
     <header class="header">
         <div class="header-content">
             <nav class="nav-links">
-                <a href="#" class="nav-link">案件一覧</a>
-                <a href="#" class="nav-link has-badge">
+                <a href="{{ route('freelancer.jobs.index') }}" class="nav-link">案件一覧</a>
+                <a href="{{ route('freelancer.applications.index') }}" class="nav-link has-badge">
                     応募した案件
-                    <span class="badge">3</span>
+                    @if($unreadApplicationCount > 0)
+                        <span class="badge">{{ $unreadApplicationCount }}</span>
+                    @endif
                 </a>
-                <a href="#" class="nav-link has-badge active">
+                <a href="{{ route('freelancer.scouts.index') }}" class="nav-link has-badge active">
                     スカウト
-                    <span class="badge">1</span>
+                    @if($unreadScoutCount > 0)
+                        <span class="badge">{{ $unreadScoutCount }}</span>
+                    @endif
                 </a>
             </nav>
             <div class="user-menu">
                 <div class="dropdown" id="userDropdown">
-                    <button class="user-avatar" id="userDropdownToggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userDropdownMenu">山</button>
+                    <button class="user-avatar" id="userDropdownToggle" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userDropdownMenu">{{ $userInitial }}</button>
                     <div class="dropdown-content" id="userDropdownMenu" role="menu" aria-label="ユーザーメニュー">
                         <a href="{{ route('freelancer.profile.settings') }}" class="dropdown-item" role="menuitem">プロフィール設定</a>
                         <div class="dropdown-divider"></div>
@@ -388,39 +392,50 @@
             <h1 class="page-title">スカウト</h1>
             <p class="page-subtitle">企業からのスカウトを確認できます。スレッドを開くとチャット画面に遷移します。</p>
 
-            <div class="list">
-                <article class="card" role="link" tabindex="0">
-                    <div class="card-head">
-                        <div>
-                            <h2 class="title">株式会社AITECH</h2>
-                            <div class="company">スカウト</div>
-                        </div>
-                        <div class="meta">
-                            <span class="chip new">未読</span>
-                        </div>
-                    </div>
-                    <p class="desc">Laravel案件のご相談です。週20〜30hでご参画いただけませんか？</p>
-                    <div class="actions">
-                        <a class="btn btn-primary" href="#">チャットへ</a>
-                    </div>
-                </article>
+            @if($threads->count() > 0)
+                <div class="list">
+                    @foreach($threads as $thread)
+                        @php
+                            $threadUrl = route('freelancer.threads.show', ['thread' => $thread->id]);
+                        @endphp
+                        <article class="card" role="link" tabindex="0" onclick="window.location.href='{{ $threadUrl }}'" style="cursor: pointer;">
+                            <div class="card-head">
+                                <div>
+                                    <h2 class="title">{{ $thread->company->name ?? '企業名不明' }}</h2>
+                                    <div class="company">スカウト</div>
+                                </div>
+                                <div class="meta">
+                                    @if($thread->is_unread)
+                                        <span class="chip new">未読</span>
+                                    @else
+                                        <span class="chip read">既読</span>
+                                    @endif
+                                </div>
+                            </div>
+                            @php
+                                $latestMessage = $thread->messages->first();
+                                $scoutMessage = $thread->scout ? $thread->scout->message : null;
+                                $displayMessage = $latestMessage ? $latestMessage->body : ($scoutMessage ?? 'メッセージがありません');
+                            @endphp
+                            <p class="desc">{{ $displayMessage }}</p>
+                            <div class="actions">
+                                <a class="btn btn-primary" href="{{ route('freelancer.threads.show', ['thread' => $thread->id]) }}">チャットへ</a>
+                            </div>
+                        </article>
+                    @endforeach
+                </div>
 
-                <article class="card" role="link" tabindex="0">
-                    <div class="card-head">
-                        <div>
-                            <h2 class="title">Tech Solutions Inc.</h2>
-                            <div class="company">スカウト</div>
-                        </div>
-                        <div class="meta">
-                            <span class="chip read">既読</span>
-                        </div>
+                {{-- ページネーション --}}
+                @if($threads->hasPages())
+                    <div style="margin-top: 2rem; display: flex; justify-content: center;">
+                        {{ $threads->links() }}
                     </div>
-                    <p class="desc">React Nativeの開発経験について、簡単に伺えますでしょうか？</p>
-                    <div class="actions">
-                        <a class="btn btn-primary" href="#">チャットへ</a>
-                    </div>
-                </article>
-            </div>
+                @endif
+            @else
+                <div style="text-align: center; padding: 3rem; color: #6a737d;">
+                    <p style="font-size: 1.1rem;">スカウトはまだありません</p>
+                </div>
+            @endif
         </div>
     </main>
 
