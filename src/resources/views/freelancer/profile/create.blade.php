@@ -250,6 +250,7 @@
             .btn { width: 100%; }
         }
     </style>
+    @include('partials.aitech-responsive')
 </head>
 <body>
     <main class="main-content">

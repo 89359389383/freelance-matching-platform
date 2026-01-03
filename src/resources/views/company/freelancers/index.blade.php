@@ -316,6 +316,7 @@
             .meta { grid-template-columns: 1fr; }
         }
     </style>
+    @include('partials.aitech-responsive')
 </head>
 <body>
     <header class="header">

@@ -421,6 +421,7 @@
             .nav-link.has-badge { padding-right: 3rem; }
         }
     </style>
+    @include('partials.aitech-responsive')
 </head>
 <body>
     <header class="header">

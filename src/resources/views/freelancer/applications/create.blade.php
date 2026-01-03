@@ -293,6 +293,7 @@
             .kv { grid-template-columns: 1fr; }
         }
     </style>
+    @include('partials.aitech-responsive')
 </head>
 <body>
     <!-- Header -->

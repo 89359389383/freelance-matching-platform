@@ -414,6 +414,7 @@
             * { transition: none !important; scroll-behavior: auto !important; }
         }
     </style>
+    @include('partials.aitech-responsive')
 </head>
 <body>
     <!-- Header -->

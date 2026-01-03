@@ -312,6 +312,7 @@
             }
         }
     </style>
+    @include('partials.aitech-responsive')
 </head>
 <body>
     <div class="background"></div>

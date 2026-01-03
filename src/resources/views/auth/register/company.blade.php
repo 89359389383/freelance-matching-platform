@@ -346,6 +346,7 @@
             }
         }
     </style>
+    @include('partials.aitech-responsive')
 </head>
 
 <body>

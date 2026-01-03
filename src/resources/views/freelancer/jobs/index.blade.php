@@ -681,6 +681,7 @@
             margin: 0.5rem 0;
         }
     </style>
+    @include('partials.aitech-responsive')
 </head>
 <body>
     <!-- Header -->

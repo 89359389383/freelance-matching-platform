@@ -495,6 +495,14 @@
             }
         }
 
+        @media (max-width: 480px) {
+            .tabs-bar { padding: 0 1rem; }
+            .tab-link { padding: 0.8rem 0.9rem; font-size: 0.95rem; }
+            .main-content { padding: 1.25rem; }
+            .job-card { padding: 1.25rem; }
+            .job-title { font-size: 1.2rem; }
+        }
+
         /* Dropdown Menu */
         .dropdown {
             position: relative;
@@ -540,6 +548,7 @@
             margin: 0.5rem 0;
         }
     </style>
+    @include('partials.aitech-responsive')
 </head>
 <body>
     <!-- Header -->
