@@ -92,7 +92,7 @@
         .dropdown-item:hover { background-color: #f6f8fa; color: #24292e; }
         .dropdown-divider { height: 1px; background-color: #e1e4e8; margin: 0.5rem 0; }
 
-        .main-content { max-width: 1100px; margin: 0 auto; padding: 3rem; }
+        .main-content { max-width: 900px; margin: 0 auto; padding: 3rem; }
         .page-title { font-size: 2rem; font-weight: 900; margin-bottom: 1.5rem; letter-spacing: -0.025em; }
         .panel {
             background-color: white; border-radius: 16px; padding: 2rem;
@@ -219,7 +219,7 @@
                 @endif
                 <div class="field">
                     <label for="message">スカウトメッセージ</label>
-                    <textarea id="message" name="message" class="textarea @error('message') is-invalid @enderror" placeholder="例: ぜひ案件のご相談をさせてください。まずは要件を共有します。" required>{{ old('message') }}</textarea>
+                    <textarea id="message" name="message" class="textarea @error('message') is-invalid @enderror" placeholder="例: ぜひ案件のご相談をさせてください。まずは要件を共有します。">{{ old('message') }}</textarea>
                     @error('message')
                         <div style="color: #d73a49; font-size: 0.85rem; margin-top: 0.5rem;">{{ $message }}</div>
                     @enderror

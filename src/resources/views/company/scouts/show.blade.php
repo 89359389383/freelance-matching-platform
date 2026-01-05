@@ -435,7 +435,12 @@
 
             <form class="composer" action="{{ route('company.threads.messages.store', ['thread' => $thread->id]) }}" method="POST">
                 @csrf
-                <textarea class="input" name="content" placeholder="メッセージを入力…" aria-label="メッセージ入力" required></textarea>
+                <textarea class="input" name="content" placeholder="メッセージを入力…" aria-label="メッセージ入力"></textarea>
+                @error('content')
+                    <div class="error" style="color: #e11d48; font-weight: 700; font-size: 0.9rem; margin-top: 0.25rem;">
+                        {{ $message }}
+                    </div>
+                @enderror
                 <button class="send" type="submit">送信</button>
             </form>
         </section>

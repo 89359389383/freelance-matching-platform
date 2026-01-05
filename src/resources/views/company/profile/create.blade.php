@@ -345,7 +345,7 @@
                         value="{{ old('company_name') }}"
                         class="form-input @error('company_name') is-invalid @enderror"
                         placeholder="例: 株式会社AITECH"
-                        required>
+>
                     @error('company_name')
                     <span class="error-message">{{ $message }}</span>
                     @enderror

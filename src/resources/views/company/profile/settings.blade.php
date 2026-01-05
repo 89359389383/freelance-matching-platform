@@ -206,7 +206,7 @@
                 @csrf
                 <div class="field">
                     <label for="name">企業名（必須）</label>
-                    <input id="name" name="name" class="input" type="text" value="{{ old('name', $company->name ?? '') }}" required>
+                    <input id="name" name="name" class="input" type="text" value="{{ old('name', $company->name ?? '') }}">
                 </div>
                 <div class="field">
                     <label for="overview">会社概要（任意）</label>

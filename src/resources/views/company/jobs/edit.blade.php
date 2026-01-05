@@ -92,7 +92,7 @@
         .dropdown-item:hover { background-color: #f6f8fa; color: #24292e; }
         .dropdown-divider { height: 1px; background-color: #e1e4e8; margin: 0.5rem 0; }
 
-        .main-content { max-width: 1100px; margin: 0 auto; padding: 3rem; }
+        .main-content { max-width: 900px; margin: 0 auto; padding: 3rem; }
         .page-title { font-size: 2rem; font-weight: 900; margin-bottom: 1.5rem; letter-spacing: -0.025em; }
         .panel {
             background-color: white; border-radius: 16px; padding: 2rem;
@@ -209,7 +209,7 @@
                 <div class="grid">
                     <div class="field">
                         <label for="title">タイトル（必須）</label>
-                        <input id="title" name="title" class="input" type="text" placeholder="例: ECサイト機能拡張プロジェクト" value="{{ old('title', $job->title) }}" required>
+                        <input id="title" name="title" class="input" type="text" placeholder="例: ECサイト機能拡張プロジェクト" value="{{ old('title', $job->title) }}">
                         @error('title')
                             <div class="help" style="color: #d73a49;">{{ $message }}</div>
                         @enderror
@@ -223,7 +223,7 @@
 
                 <div class="field">
                     <label for="description">案件概要（必須）</label>
-                    <textarea id="description" name="description" class="textarea" placeholder="案件の概要を入力してください" required>{{ old('description', $job->description) }}</textarea>
+                    <textarea id="description" name="description" class="textarea" placeholder="案件の概要を入力してください">{{ old('description', $job->description) }}</textarea>
                     @error('description')
                         <div class="help" style="color: #d73a49;">{{ $message }}</div>
                     @enderror
@@ -241,7 +241,7 @@
                 <div class="grid-3">
                     <div class="field">
                         <label for="reward_type">報酬タイプ（必須）</label>
-                        <select id="reward_type" name="reward_type" class="select" required>
+                        <select id="reward_type" name="reward_type" class="select">
                             <option value="monthly" {{ old('reward_type', $job->reward_type) === 'monthly' ? 'selected' : '' }}>月額/案件単価</option>
                             <option value="hourly" {{ old('reward_type', $job->reward_type) === 'hourly' ? 'selected' : '' }}>時給</option>
                         </select>
@@ -251,7 +251,7 @@
                     </div>
                     <div class="field">
                         <label for="min_rate">最低単価（必須）</label>
-                        <input id="min_rate" name="min_rate" class="input" type="number" placeholder="例: 300000" value="{{ old('min_rate', $job->min_rate) }}" min="0" required>
+                        <input id="min_rate" name="min_rate" class="input" type="number" placeholder="例: 300000" value="{{ old('min_rate', $job->min_rate) }}" min="0">
                         <div class="help">円単位で入力してください</div>
                         @error('min_rate')
                             <div class="help" style="color: #d73a49;">{{ $message }}</div>
@@ -259,7 +259,7 @@
                     </div>
                     <div class="field">
                         <label for="max_rate">最高単価（必須）</label>
-                        <input id="max_rate" name="max_rate" class="input" type="number" placeholder="例: 500000" value="{{ old('max_rate', $job->max_rate) }}" min="0" required>
+                        <input id="max_rate" name="max_rate" class="input" type="number" placeholder="例: 500000" value="{{ old('max_rate', $job->max_rate) }}" min="0">
                         <div class="help">円単位で入力してください</div>
                         @error('max_rate')
                             <div class="help" style="color: #d73a49;">{{ $message }}</div>
@@ -269,7 +269,7 @@
 
                 <div class="field">
                     <label for="work_time_text">稼働条件（必須）</label>
-                    <input id="work_time_text" name="work_time_text" class="input" type="text" placeholder="例: 週10〜20時間、2〜3ヶ月" value="{{ old('work_time_text', $job->work_time_text) }}" required>
+                    <input id="work_time_text" name="work_time_text" class="input" type="text" placeholder="例: 週10〜20時間、2〜3ヶ月" value="{{ old('work_time_text', $job->work_time_text) }}">
                     <div class="help">稼働時間や期間などを自由に入力してください</div>
                     @error('work_time_text')
                         <div class="help" style="color: #d73a49;">{{ $message }}</div>
@@ -278,7 +278,7 @@
 
                 <div class="field">
                     <label for="status">ステータス（必須）</label>
-                    <select id="status" name="status" class="select" required>
+                    <select id="status" name="status" class="select">
                         <option value="{{ App\Models\Job::STATUS_PUBLISHED }}" {{ old('status', $job->status) == App\Models\Job::STATUS_PUBLISHED ? 'selected' : '' }}>公開</option>
                         <option value="{{ App\Models\Job::STATUS_DRAFT }}" {{ old('status', $job->status) == App\Models\Job::STATUS_DRAFT ? 'selected' : '' }}>下書き</option>
                         <option value="{{ App\Models\Job::STATUS_STOPPED }}" {{ old('status', $job->status) == App\Models\Job::STATUS_STOPPED ? 'selected' : '' }}>停止</option>

@@ -118,7 +118,7 @@
         /* Main Layout */
         .main-content {
             display: flex;
-            max-width: 1600px;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 3rem;
             gap: 3rem;

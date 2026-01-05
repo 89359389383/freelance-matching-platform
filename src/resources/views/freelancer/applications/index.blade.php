@@ -148,7 +148,7 @@
 
         /* Main Layout - Clean and Spacious */
         .main-content {
-            max-width: 1600px;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 3rem;
         }
@@ -269,8 +269,10 @@
 
         .tabs-container {
             max-width: 1600px;
+            width: 100%;
             margin: 0 auto;
             display: flex;
+            justify-content: center;
             gap: 0;
         }
 

@@ -588,14 +588,14 @@
                     <div class="grid-2">
                         <div class="row">
                             <div class="label">表示名</div>
-                            <input class="input @error('display_name') is-invalid @enderror" id="display_name" name="display_name" type="text" value="{{ old('display_name', $freelancer->display_name ?? '') }}" required>
+                            <input class="input @error('display_name') is-invalid @enderror" id="display_name" name="display_name" type="text" value="{{ old('display_name', $freelancer->display_name ?? '') }}">
                             @error('display_name')
                             <span class="error-message">{{ $message }}</span>
                             @enderror
                         </div>
                         <div class="row">
                             <div class="label">職種（自由入力）</div>
-                            <input class="input @error('job_title') is-invalid @enderror" id="job_title" name="job_title" type="text" value="{{ old('job_title', $freelancer->job_title ?? '') }}" required>
+                            <input class="input @error('job_title') is-invalid @enderror" id="job_title" name="job_title" type="text" value="{{ old('job_title', $freelancer->job_title ?? '') }}">
                             @error('job_title')
                             <span class="error-message">{{ $message }}</span>
                             @enderror
@@ -604,7 +604,7 @@
 
                     <div class="row">
                         <div class="label">自己紹介</div>
-                        <textarea class="textarea @error('bio') is-invalid @enderror" name="bio" required>{{ old('bio', $freelancer->bio ?? '') }}</textarea>
+                        <textarea class="textarea @error('bio') is-invalid @enderror" name="bio">{{ old('bio', $freelancer->bio ?? '') }}</textarea>
                         @error('bio')
                         <span class="error-message">{{ $message }}</span>
                         @enderror
@@ -659,8 +659,8 @@
                         <div class="row">
                             <div class="label">稼働可能時間（週）</div>
                             <div class="grid-2">
-                                <input class="input @error('min_hours_per_week') is-invalid @enderror" id="min_hours_per_week" name="min_hours_per_week" type="number" value="{{ old('min_hours_per_week', $freelancer->min_hours_per_week ?? '') }}" placeholder="下限(h)" required>
-                                <input class="input @error('max_hours_per_week') is-invalid @enderror" id="max_hours_per_week" name="max_hours_per_week" type="number" value="{{ old('max_hours_per_week', $freelancer->max_hours_per_week ?? '') }}" placeholder="上限(h)" required>
+                                <input class="input @error('min_hours_per_week') is-invalid @enderror" id="min_hours_per_week" name="min_hours_per_week" type="number" value="{{ old('min_hours_per_week', $freelancer->min_hours_per_week ?? '') }}" placeholder="下限(h)">
+                                <input class="input @error('max_hours_per_week') is-invalid @enderror" id="max_hours_per_week" name="max_hours_per_week" type="number" value="{{ old('max_hours_per_week', $freelancer->max_hours_per_week ?? '') }}" placeholder="上限(h)">
                             </div>
                             @error('min_hours_per_week')
                             <span class="error-message">{{ $message }}</span>
@@ -672,8 +672,8 @@
                         <div class="row">
                             <div class="label">稼働（day / week）</div>
                             <div class="grid-2">
-                                <input class="input @error('hours_per_day') is-invalid @enderror" id="hours_per_day" name="hours_per_day" type="number" value="{{ old('hours_per_day', $freelancer->hours_per_day ?? '') }}" placeholder="h/day" required>
-                                <input class="input @error('days_per_week') is-invalid @enderror" id="days_per_week" name="days_per_week" type="number" value="{{ old('days_per_week', $freelancer->days_per_week ?? '') }}" placeholder="日/week" required>
+                                <input class="input @error('hours_per_day') is-invalid @enderror" id="hours_per_day" name="hours_per_day" type="number" value="{{ old('hours_per_day', $freelancer->hours_per_day ?? '') }}" placeholder="h/day">
+                                <input class="input @error('days_per_week') is-invalid @enderror" id="days_per_week" name="days_per_week" type="number" value="{{ old('days_per_week', $freelancer->days_per_week ?? '') }}" placeholder="日/week">
                             </div>
                             @error('hours_per_day')
                             <span class="error-message">{{ $message }}</span>

@@ -383,7 +383,7 @@
                     @csrf
                     <div class="form-row">
                         <label class="label" for="message">応募メッセージ <span class="required">必須</span></label>
-                        <textarea id="message" class="textarea" name="message" placeholder="例) 要件の◯◯に対して、Laravel + Vueでの実装経験があります。稼働は週25h、開始は1月上旬から可能です。実績: https://..." required>{{ old('message') }}</textarea>
+                        <textarea id="message" class="textarea" name="message" placeholder="例) 要件の◯◯に対して、Laravel + Vueでの実装経験があります。稼働は週25h、開始は1月上旬から可能です。実績: https://...">{{ old('message') }}</textarea>
                         <div class="help">200〜600文字程度が目安です。具体的な成果（数値/期間/担当範囲）を入れると強いです。</div>
                         @error('message')
                             <div class="help" style="color: #d73a49;">{{ $message }}</div>

@@ -382,8 +382,7 @@
                         value="{{ old('email') }}"
                         class="form-input @error('email') is-invalid @enderror"
                         placeholder="メールアドレス"
-                        autocomplete="email"
-                        required>
+                        autocomplete="email">
                     @error('email')
                     <span class="error-message">{{ $message }}</span>
                     @enderror
@@ -397,8 +396,7 @@
                             id="password"
                             class="form-input @error('password') is-invalid @enderror"
                             placeholder="パスワード"
-                            autocomplete="current-password"
-                            required>
+                            autocomplete="current-password">
                         <button
                             type="button"
                             class="toggle-password"

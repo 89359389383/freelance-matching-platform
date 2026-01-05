@@ -511,7 +511,12 @@
 
             <form class="composer" method="POST" action="{{ route('company.threads.messages.store', ['thread' => $thread]) }}" id="messageForm">
                 @csrf
-                <textarea class="input" id="messageInput" name="content" placeholder="メッセージを入力（クローズ時は送信不可）" aria-label="メッセージ入力" required></textarea>
+                <textarea class="input" id="messageInput" name="content" placeholder="メッセージを入力（クローズ時は送信不可）" aria-label="メッセージ入力"></textarea>
+                @error('content')
+                    <div class="error" style="color: #e11d48; font-weight: 700; font-size: 0.9rem; margin-top: 0.25rem;">
+                        {{ $message }}
+                    </div>
+                @enderror
                 <button class="send" id="sendBtn" type="submit">送信</button>
             </form>
         </section>

@@ -292,14 +292,14 @@
                     <div class="grid-2">
                         <div class="row">
                             <label class="label" for="display_name">表示名 <span class="required">必須</span></label>
-                            <input class="input @error('display_name') is-invalid @enderror" id="display_name" name="display_name" type="text" value="{{ old('display_name') }}" placeholder="例: 山田 太郎" required>
+                            <input class="input @error('display_name') is-invalid @enderror" id="display_name" name="display_name" type="text" value="{{ old('display_name') }}" placeholder="例: 山田 太郎">
                             @error('display_name')
                             <span class="error-message">{{ $message }}</span>
                             @enderror
                         </div>
                         <div class="row">
                             <label class="label" for="job_title">職種（自由入力） <span class="required">必須</span></label>
-                            <input class="input @error('job_title') is-invalid @enderror" id="job_title" name="job_title" type="text" value="{{ old('job_title') }}" placeholder="例: Laravelエンジニア" required>
+                            <input class="input @error('job_title') is-invalid @enderror" id="job_title" name="job_title" type="text" value="{{ old('job_title') }}" placeholder="例: Laravelエンジニア">
                             @error('job_title')
                             <span class="error-message">{{ $message }}</span>
                             @enderror
@@ -308,7 +308,7 @@
 
                     <div class="row">
                         <label class="label" for="bio">自己紹介文 <span class="required">必須</span></label>
-                        <textarea class="textarea @error('bio') is-invalid @enderror" id="bio" name="bio" placeholder="例) Laravelを中心にWeb開発を5年経験。EC/在庫管理などの業務ドメインに強みがあります。" required>{{ old('bio') }}</textarea>
+                        <textarea class="textarea @error('bio') is-invalid @enderror" id="bio" name="bio" placeholder="例) Laravelを中心にWeb開発を5年経験。EC/在庫管理などの業務ドメインに強みがあります。">{{ old('bio') }}</textarea>
                         @error('bio')
                         <span class="error-message">{{ $message }}</span>
                         @enderror
@@ -386,11 +386,11 @@
                                     <div style="font-weight: 700; color: #586069; font-size: 0.85rem; margin-bottom:0.5rem;">週間稼働時間</div>
                                     <div class="grid-2" style="align-items: stretch;">
                                         <div class="row" style="gap:0.4rem;">
-                                            <input class="input @error('min_hours_per_week') is-invalid @enderror" name="min_hours_per_week" type="number" value="{{ old('min_hours_per_week') }}" placeholder="例: 20" required>
+                                            <input class="input @error('min_hours_per_week') is-invalid @enderror" name="min_hours_per_week" type="number" value="{{ old('min_hours_per_week') }}" placeholder="例: 20">
                                             <div class="help" style="margin:0; font-size:0.8rem;">週間の最小稼働時間（時間）</div>
                                         </div>
                                         <div class="row" style="gap:0.4rem;">
-                                            <input class="input @error('max_hours_per_week') is-invalid @enderror" name="max_hours_per_week" type="number" value="{{ old('max_hours_per_week') }}" placeholder="例: 40" required>
+                                            <input class="input @error('max_hours_per_week') is-invalid @enderror" name="max_hours_per_week" type="number" value="{{ old('max_hours_per_week') }}" placeholder="例: 40">
                                             <div class="help" style="margin:0; font-size:0.8rem;">週間の最大稼働時間（時間）</div>
                                         </div>
                                     </div>
@@ -399,11 +399,11 @@
                                     <div style="font-weight: 700; color: #586069; font-size: 0.85rem; margin-bottom:0.5rem;">1日あたりの稼働時間・稼働日数</div>
                                     <div class="grid-2" style="align-items: stretch;">
                                         <div class="row" style="gap:0.4rem;">
-                                            <input class="input @error('hours_per_day') is-invalid @enderror" name="hours_per_day" type="number" value="{{ old('hours_per_day') }}" placeholder="例: 8" required>
+                                            <input class="input @error('hours_per_day') is-invalid @enderror" name="hours_per_day" type="number" value="{{ old('hours_per_day') }}" placeholder="例: 8">
                                             <div class="help" style="margin:0; font-size:0.8rem;">1日あたりの稼働時間（時間）</div>
                                         </div>
                                         <div class="row" style="gap:0.4rem;">
-                                            <input class="input @error('days_per_week') is-invalid @enderror" name="days_per_week" type="number" value="{{ old('days_per_week') }}" placeholder="例: 5" required>
+                                            <input class="input @error('days_per_week') is-invalid @enderror" name="days_per_week" type="number" value="{{ old('days_per_week') }}" placeholder="例: 5">
                                             <div class="help" style="margin:0; font-size:0.8rem;">1週間あたりの稼働日数（日）</div>
                                         </div>
                                     </div>
@@ -434,7 +434,7 @@
 
                     <div class="row" style="margin-top:1.25rem;">
                         <label class="label" for="icon">ユーザーアイコン <span class="required">必須</span></label>
-                        <input class="input @error('icon') is-invalid @enderror" id="icon" name="icon" type="file" accept="image/*" required>
+                        <input class="input @error('icon') is-invalid @enderror" id="icon" name="icon" type="file" accept="image/*">
                         @error('icon')
                         <span class="error-message">{{ $message }}</span>
                         @enderror

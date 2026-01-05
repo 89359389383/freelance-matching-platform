@@ -29,6 +29,7 @@
         .header-content {
             max-width: 1600px;
             margin: 0 auto;
+            border-bottom: 1px solid #e1e4e8;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -123,7 +124,7 @@
         .dropdown-divider { height: 1px; background-color: #e1e4e8; margin: 0.5rem 0; }
 
         /* Main */
-        .main-content { max-width: 1600px; margin: 0 auto; padding: 3rem; }
+        .main-content { max-width: 1000px; margin: 0 auto; padding: 3rem; background-color: #fafbfc; }
         .page-title {
             font-size: 2rem;
             font-weight: 800;
@@ -273,10 +274,47 @@
             .nav-link { font-size: 0.95rem; padding: 0.6rem 0.9rem; }
             .nav-link.has-badge { padding-right: 2.6rem; }
         }
+    /* Centered tab bar styling to mimic freelancer view (inside style tag) */
+    .tabs-bar {
+        background-color: #ffffff;
+        border-bottom: 1px solid #e1e4e8;
+        padding: 0 3rem;
+        position: sticky;
+        top: var(--header-height);
+        z-index: 99;
+    }
+    .tabs-container {
+        max-width: 1600px;
+        width: 100%;
+        margin: 0 auto;
+        display: flex;
+        justify-content: center;
+        gap: 0;
+    }
+    .tab-link {
+        display: inline-flex;
+        align-items: center;
+        text-decoration: none;
+        color: #586069;
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+        font-size: 1rem;
+        border-bottom: 3px solid transparent;
+        transition: all 0.15s ease;
+        position: relative;
+        letter-spacing: -0.01em;
+    }
+    .tab-link:hover { color: #24292e; background-color: #f6f8fa; }
+    .tab-link.active {
+        color: #0366d6;
+        border-bottom-color: #0366d6;
+        background-color: transparent;
+    }
     </style>
     @include('partials.aitech-responsive')
 </head>
 <body>
+    <!-- Header -->
     <header class="header">
         <div class="header-content">
             <nav class="nav-links">
@@ -313,17 +351,21 @@
             </div>
         </div>
     </header>
-
-    <main class="main-content">
-        <h1 class="page-title">応募された案件</h1>
-
-        <div class="tabs" role="tablist" aria-label="応募タブ">
-            <a href="{{ route('company.applications.index', ['status' => 'pending']) }}" class="tab {{ $status === 'pending' ? 'is-active' : '' }}" role="tab" aria-selected="{{ $status === 'pending' ? 'true' : 'false' }}" aria-controls="tab-open" id="tabOpenBtn">応募中</a>
-            <a href="{{ route('company.applications.index', ['status' => 'closed']) }}" class="tab {{ $status === 'closed' ? 'is-active' : '' }}" role="tab" aria-selected="{{ $status === 'closed' ? 'true' : 'false' }}" aria-controls="tab-closed" id="tabClosedBtn">終了</a>
+    <!-- Tabs Bar -->
+    <div class="tabs-bar">
+        <div class="tabs-container">
+            <nav aria-label="応募一覧タブ">
+                <a class="tab-link {{ $status === 'pending' ? 'active' : '' }}" href="{{ route('company.applications.index', ['status' => 'pending']) }}" data-tab="active" id="tab-active">応募中</a>
+                <a class="tab-link {{ $status === 'closed' ? 'active' : '' }}" href="{{ route('company.applications.index', ['status' => 'closed']) }}" data-tab="closed" id="tab-closed">終了</a>
+            </nav>
         </div>
+    </div>
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="content-area">
 
-        <section id="tab-open" role="tabpanel" aria-labelledby="tabOpenBtn" {{ $status === 'closed' ? 'hidden' : '' }}>
-            <div class="list">
+        <section id="tab-open" role="tabpanel" aria-labelledby="tab-active" {{ $status === 'closed' ? 'hidden' : '' }}>
+            <div class="jobs-grid" id="jobs-grid">
                 @forelse($applications as $application)
                     @php
                         $job = $application->job;
@@ -406,7 +448,7 @@
         </section>
 
         <section id="tab-closed" role="tabpanel" aria-labelledby="tabClosedBtn" {{ $status === 'pending' ? 'hidden' : '' }}>
-            <div class="list">
+            <div class="jobs-grid" id="jobs-grid">
                 @forelse($applications as $application)
                     @php
                         $job = $application->job;

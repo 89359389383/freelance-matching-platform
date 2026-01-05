@@ -379,8 +379,7 @@
                         value="{{ old('email') }}"
                         class="form-input @error('email') is-invalid @enderror"
                         placeholder="メールアドレス"
-                        autocomplete="email"
-                        required>
+                        autocomplete="email">
                     @error('email')
                     <span class="error-message">{{ $message }}</span>
                     @enderror
@@ -394,8 +393,7 @@
                             id="password"
                             class="form-input @error('password') is-invalid @enderror"
                             placeholder="パスワード（8文字以上）"
-                            autocomplete="new-password"
-                            required>
+                            autocomplete="new-password">
                         <button
                             type="button"
                             class="toggle-password"
@@ -421,8 +419,7 @@
                             id="password_confirmation"
                             class="form-input @error('password_confirmation') is-invalid @enderror"
                             placeholder="パスワード確認"
-                            autocomplete="new-password"
-                            required>
+                            autocomplete="new-password">
                         <button
                             type="button"
                             class="toggle-password"

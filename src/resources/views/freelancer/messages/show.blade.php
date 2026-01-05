@@ -643,10 +643,15 @@
                 @endforelse
             </div>
 
-            <form class="composer" action="{{ route('freelancer.threads.messages.store', ['thread' => $thread->id]) }}" method="post">
+    <form class="composer" action="{{ route('freelancer.threads.messages.store', ['thread' => $thread->id]) }}" method="post">
                 @csrf
-                <textarea class="input" name="content" placeholder="メッセージを入力…" aria-label="メッセージを入力" required></textarea>
-                <button class="send" type="submit">送信</button>
+        <textarea class="input" name="content" placeholder="メッセージを入力…" aria-label="メッセージを入力"></textarea>
+        @error('content')
+            <div class="error" style="color: #e11d48; font-weight: 700; font-size: 0.9rem; margin-top: 0.25rem;">
+                {{ $message }}
+            </div>
+        @enderror
+        <button class="send" type="submit">送信</button>
             </form>
         </section>
     </main>
