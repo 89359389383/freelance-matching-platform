@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
@@ -242,5 +243,198 @@ class AuthController extends Controller
 
         // ログイン画面へ戻す
         return redirect('/login');
+    }
+
+    /**
+     * ===============================
+     * パスワード再設定フォーム表示
+     * URL: /forgot-password
+     * メソッド: GET
+     * ===============================
+     */
+    public function showForgotPasswordForm()
+    {
+        // パスワード再設定ページ（auth/forgot-password.blade.php）を表示します。
+        return view('auth.forgot-password');
+    }
+
+    /**
+     * ===============================
+     * パスワード再設定リンク送信処理
+     * URL: /forgot-password
+     * メソッド: POST
+     * ===============================
+     */
+    public function sendResetLink(Request $request)
+    {
+        // メソッド開始時のログ
+        Log::info('パスワード再設定リンク送信処理: 開始', [
+            'email' => $request->email,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'timestamp' => now()->toDateTimeString(),
+        ]);
+
+        try {
+            // メール設定情報をログに記録（パスワードは除く）
+            $mailConfig = config('mail');
+            Log::info('パスワード再設定リンク送信処理: メール設定情報', [
+                'mail_driver' => $mailConfig['default'] ?? 'unknown',
+                'mail_host' => $mailConfig['mailers']['smtp']['host'] ?? 'unknown',
+                'mail_port' => $mailConfig['mailers']['smtp']['port'] ?? 'unknown',
+                'mail_username' => $mailConfig['mailers']['smtp']['username'] ?? 'unknown',
+                'mail_encryption' => $mailConfig['mailers']['smtp']['encryption'] ?? 'unknown',
+                'mail_from_address' => $mailConfig['from']['address'] ?? 'unknown',
+                'mail_from_name' => $mailConfig['from']['name'] ?? 'unknown',
+            ]);
+
+            // 入力されたメールアドレスが正しい形式かどうかを検証します。
+            Log::info('パスワード再設定リンク送信処理: バリデーション開始', [
+                'email' => $request->email,
+            ]);
+
+            $request->validate([
+                'email' => 'required|email' // 必須項目であり、メールアドレス形式である必要があります。
+            ]);
+
+            Log::info('パスワード再設定リンク送信処理: バリデーション成功', [
+                'email' => $request->email,
+            ]);
+
+            // ユーザーが存在するか確認
+            $user = User::where('email', $request->email)->first();
+            if (!$user) {
+                Log::warning('パスワード再設定リンク送信処理: ユーザーが見つかりません', [
+                    'email' => $request->email,
+                ]);
+            } else {
+                Log::info('パスワード再設定リンク送信処理: ユーザーが見つかりました', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'name' => $user->name,
+                ]);
+            }
+
+            // パスワード再設定リンクを送信します。
+            Log::info('パスワード再設定リンク送信処理: Password::sendResetLink呼び出し開始', [
+                'email' => $request->email,
+            ]);
+
+            $status = Password::sendResetLink(
+                $request->only('email') // リクエストからメールアドレスのみを取得します。
+            );
+
+            Log::info('パスワード再設定リンク送信処理: Password::sendResetLink呼び出し完了', [
+                'email' => $request->email,
+                'status' => $status,
+                'status_code' => $status === Password::RESET_LINK_SENT ? 'RESET_LINK_SENT' : 'OTHER',
+            ]);
+
+            // リンク送信の結果に応じて、成功またはエラーメッセージを返します。
+            if ($status === Password::RESET_LINK_SENT) {
+                Log::info('パスワード再設定リンク送信処理: 成功', [
+                    'email' => $request->email,
+                    'status' => 'RESET_LINK_SENT',
+                ]);
+                return back()->with('status', 'パスワード再設定用メールを送信しました。'); // 成功時のメッセージ
+            } else {
+                Log::warning('パスワード再設定リンク送信処理: 失敗（メール送信失敗）', [
+                    'email' => $request->email,
+                    'status' => $status,
+                ]);
+                return back()->withErrors(['email' => 'メールアドレスが登録されていません。']); // 失敗時のエラーメッセージ
+            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // バリデーションエラー
+            Log::warning('パスワード再設定リンク送信処理: バリデーションエラー', [
+                'email' => $request->email,
+                'errors' => $e->errors(),
+            ]);
+            throw $e; // バリデーションエラーは再スロー
+        } catch (\Swift_TransportException $e) {
+            // SMTP関連のエラー（SwiftMailerの例外）
+            Log::error('パスワード再設定リンク送信処理: SMTP送信エラー', [
+                'email' => $request->email,
+                'error_message' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'error_trace' => $e->getTraceAsString(),
+                'mail_config' => [
+                    'host' => config('mail.mailers.smtp.host'),
+                    'port' => config('mail.mailers.smtp.port'),
+                    'username' => config('mail.mailers.smtp.username'),
+                    'encryption' => config('mail.mailers.smtp.encryption'),
+                ],
+            ]);
+            return back()->withErrors(['email' => 'メール送信に失敗しました。しばらく時間をおいて再度お試しください。']);
+        } catch (\Throwable $e) {
+            // その他の予期しないエラー
+            Log::error('パスワード再設定リンク送信処理: 予期しないエラー', [
+                'email' => $request->email,
+                'error_message' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'error_trace' => $e->getTraceAsString(),
+                'error_class' => get_class($e),
+                'request_data' => $request->all(),
+            ]);
+            return back()->withErrors(['email' => 'エラーが発生しました。しばらく時間をおいて再度お試しください。']);
+        }
+    }
+
+    /**
+     * ===============================
+     * パスワードリセットフォーム表示
+     * URL: /reset-password/{token}
+     * メソッド: GET
+     * ===============================
+     */
+    public function showResetForm($token)
+    {
+        // パスワードリセットページ（auth/reset-password.blade.php）を表示し、トークンを渡します。
+        return view('auth.reset-password', ['token' => $token]);
+    }
+
+    /**
+     * ===============================
+     * パスワードリセット処理
+     * URL: /reset-password
+     * メソッド: POST
+     * ===============================
+     */
+    public function resetPassword(Request $request)
+    {
+        // 入力内容の検証を行います。
+        Log::info('パスワードリセット処理: 入力内容の検証を開始', ['request_data' => $request->all()]);
+        $request->validate([
+            'token' => 'required', // パスワードリセット用のトークンが必須です。
+            'email' => 'required|email', // メールアドレスが必須で、正しい形式である必要があります。
+            'password' => 'required|min:8|confirmed', // パスワードは8文字以上で、確認用と一致する必要があります。
+        ]);
+        Log::info('パスワードリセット処理: 入力内容の検証が完了');
+
+        // パスワードリセットを実行します。
+        Log::info('パスワードリセット処理: リセット処理を開始', ['email' => $request->email]);
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'), // 必要なデータを取得
+            function ($user, $password) {
+                Log::info('パスワードリセット処理: ユーザーのパスワードを更新', ['user_id' => $user->id]);
+                // ユーザーのパスワードを更新します。
+                $user->password = bcrypt($password); // パスワードをハッシュ化して保存
+                $user->save(); // ユーザー情報を保存
+                Log::info('パスワードリセット処理: ユーザーのパスワードを保存完了', ['user_id' => $user->id]);
+            }
+        );
+
+        // リセット処理の結果に応じて、成功またはエラーメッセージを返します。
+        if ($status === Password::PASSWORD_RESET) {
+            Log::info('パスワードリセット処理: 成功', ['email' => $request->email]);
+            return redirect()->route('auth.login.form')->with('status', 'パスワードを再設定しました。')->with('alert', 'success'); // 成功時のリダイレクト
+        } else {
+            Log::warning('パスワードリセット処理: 失敗', ['email' => $request->email]);
+            return back()->withErrors(['email' => 'エラーが発生しました。']); // 失敗時のエラーメッセージ
+        }
     }
 }

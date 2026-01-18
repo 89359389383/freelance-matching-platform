@@ -298,6 +298,7 @@
         }
         .card-scout-btn {
             padding: 0.45rem 0.65rem;
+            margin-top: 8px;
             border-radius: 8px;
             font-weight: 700;
             font-size: 0.85rem;
@@ -330,7 +331,7 @@
         .tag { background-color: #f1f8ff; color: #0366d6; padding: 0.3rem 0.75rem; border-radius: 999px; font-size: 0.85rem; font-weight: 700; border: 1px solid #c8e1ff; }
         .meta {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: 1fr;
             gap: 0.75rem;
             margin-top: 1rem;
         }
@@ -345,16 +346,15 @@
             min-width: 0;
             overflow: hidden;
         }
-        .meta-label { font-size: 0.7rem; color: #6a737d; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; flex-shrink: 0; }
+        .meta-label { font-size: 15px; color: #6a737d; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; flex-shrink: 0; }
         .meta-value {
             font-weight: 800;
             color: #24292e;
             min-width: 0;
             text-align: right;
-            /* 1行に固定して見た目を崩さない（入り切らない場合は …） */
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            /* 複数行を許容して稼働情報などを切らさない */
+            white-space: normal;
+            overflow: visible;
         }
 
         /* Right detail */
@@ -489,10 +489,10 @@
                         if (isset($freelancer->hours_per_day) || isset($freelancer->days_per_week)) {
                             $dailyParts = [];
                             if (isset($freelancer->hours_per_day)) { $dailyParts[] = $freelancer->hours_per_day . 'h/day'; }
-                            if (isset($freelancer->days_per_week)) { $dailyParts[] = $freelancer->days_per_week . '日/week'; }
+                            if (isset($freelancer->days_per_week)) { $dailyParts[] = $freelancer->days_per_week . 'day/week'; }
                             $dailyText = implode('・', $dailyParts);
                         }
-                        $workStyleText = '週' . $workHours . ($dailyText ? '（' . $dailyText . '）' : '');
+                        $workStyleText = '週' . $workHours . ($dailyText ? ' ' . $dailyText : '');
                         $minRate = $freelancer->min_rate ?: null; // 0は未設定扱い
                         $maxRate = $freelancer->max_rate ?: null; // 0は未設定扱い
                         if ($minRate !== null && $maxRate !== null) {
@@ -530,12 +530,17 @@
                         </div>
                         <div class="meta" aria-label="ワークスタイル">
                             <div class="meta-item">
-                                <div class="meta-label">稼働</div>
-                                <div class="meta-value" title="{{ $workStyleText }}">{{ $workStyleText }}</div>
-                            </div>
-                            <div class="meta-item">
                                 <div class="meta-label">希望単価</div>
                                 <div class="meta-value" title="{{ $rateText }}">{{ $rateText }}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">稼働</div>
+                                <div class="meta-value" title="{{ $workStyleText }}">
+                                    {{ '週' . $workHours }}
+                                    @if($dailyText)
+                                        <br><span>{{ $dailyText }}</span>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </article>
@@ -570,7 +575,6 @@
                     <div class="detail-title">スキル</div>
                     <div class="tags" id="dSkills"></div>
 
-                    <div class="detail-title">ワークスタイル</div>
                     <div class="meta" id="dMeta"></div>
 
                     <div class="detail-title">ポートフォリオ</div>
@@ -637,9 +641,13 @@
                 'role' => $freelancer->job_title ?? '',
                 'bio' => $freelancer->bio ?? '',
                 'skills' => $allSkills->toArray(),
-                'workHours' => $workHours,
-                'hoursPerDay' => $freelancer->hours_per_day ?? null,
-                'daysPerWeek' => $freelancer->days_per_week ?? null,
+            'workHours' => $workHours,
+            'hoursPerDay' => $freelancer->hours_per_day ?? null,
+            'daysPerWeek' => $freelancer->days_per_week ?? null,
+            // フリー入力の働き方（プロフィールにある自由入力項目）を返す（存在すれば表示に使う）
+            'workStyleText' => $freelancer->work_style ?? $freelancer->work_style_text ?? '',
+            // フルリモート希望フラグ（モデル上の複数候補名に対応）
+            'prefersFullRemote' => (bool)($freelancer->prefers_full_remote ?? $freelancer->full_remote ?? $freelancer->wants_full_remote ?? false),
                 'rateText' => $rateText,
                 'portfolios' => $freelancer->portfolios->pluck('url')->toArray(),
                 'experienceCompanies' => $freelancer->experience_companies ?? '',
@@ -692,19 +700,37 @@
                 dSkills.innerHTML = x.skills.length > 0 
                     ? x.skills.map(s => `<span class="tag">${s}</span>`).join('')
                     : '<span style="color: #586069;">（未設定）</span>';
-                const dailyPart = ((x.hoursPerDay || x.daysPerWeek) ? ((x.hoursPerDay ? `${x.hoursPerDay}h/day` : '') + (x.hoursPerDay && x.daysPerWeek ? '・' : '') + (x.daysPerWeek ? `${x.daysPerWeek}日/week` : '')) : '');
-                const workStyleText = `週${x.workHours}${dailyPart ? '（' + dailyPart + '）' : ''}`;
+                const dailyPart = ((x.hoursPerDay || x.daysPerWeek) ? ((x.hoursPerDay ? `${x.hoursPerDay}h/day` : '') + (x.hoursPerDay && x.daysPerWeek ? '・' : '') + (x.daysPerWeek ? `${x.daysPerWeek}day/week` : '')) : '');
+                const weekLine = `週${x.workHours}`;
+                const dailyLine = dailyPart;
 
-                dMeta.innerHTML = `
-                    <div class="meta-item">
-                        <div class="meta-label">稼働</div>
-                        <div class="meta-value" title="${workStyleText.replaceAll('"','&quot;')}">${workStyleText}</div>
-                    </div>
+                // サイドバー：メタ情報表示
+                let parts = [];
+
+                // フリー入力の働き方があれば表示（その下にメタを出す）
+                if (x.workStyleText && x.workStyleText.toString().trim()) {
+                    parts.push(`<div class="detail-title">働き方</div><div class="desc" id="dWorkStyle">${String(x.workStyleText).replace(/\n/g,'<br>')}</div>`);
+                }
+
+                // 希望単価（上）
+                parts.push(`
                     <div class="meta-item">
                         <div class="meta-label">希望単価</div>
                         <div class="meta-value" title="${String(x.rateText ?? '').replaceAll('"','&quot;')}">${x.rateText}</div>
                     </div>
-                `;
+                `);
+
+                // 稼働（週行・その下に日別行）
+                parts.push(`
+                    <div class="meta-item">
+                        <div class="meta-label">稼働</div>
+                        <div class="meta-value" title="${(weekLine + (dailyLine ? ' ' + dailyLine : '')).replaceAll('"','&quot;')}">
+                            ${weekLine}${dailyLine ? '<br><span>' + dailyLine + '</span>' : ''}
+                        </div>
+                    </div>
+                `);
+
+                dMeta.innerHTML = parts.join('');
                 
                 if (x.portfolios && x.portfolios.length > 0) {
                     dPortfolio.innerHTML = x.portfolios.map(url =>

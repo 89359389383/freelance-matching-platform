@@ -45,6 +45,22 @@ Route::post('/login/company', [AuthController::class, 'loginCompany'])->name('au
 // ログアウト（クリック導線用：POST）
 Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout');
 
+// パスワード再設定メール送信フォーム（メールアドレス入力画面）
+Route::get('/forgot-password', [AuthController::class, 'showForgotPasswordForm'])
+    ->name('password.request');
+
+// パスワード再設定メール送信処理（リセットリンクメールを送る）
+Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])
+    ->name('password.email');
+
+// パスワード再設定ページ表示（メール内リンクからアクセスする画面）
+Route::get('/reset-password/{token}', [AuthController::class, 'showResetForm'])
+    ->name('password.reset');
+
+// パスワード更新処理（新しいパスワードを保存する）
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])
+    ->name('password.update');
+
 // フリーランス 新規登録 表示（ログイン情報登録）
 Route::get('/register/freelancer', [AuthController::class, 'showFreelancerRegister'])->name('auth.register.freelancer.form');
 

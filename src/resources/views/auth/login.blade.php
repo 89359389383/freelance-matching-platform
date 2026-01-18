@@ -430,6 +430,7 @@
                 </button>
 
                 <div class="register-links">
+                    <a href="{{ route('password.request') }}">パスワードを忘れたことはこちら</a>
                     <a href="{{ route('auth.register.freelancer.form') }}">フリーランスとして新規登録</a>
                     <a href="{{ route('auth.register.company.form') }}">企業として新規登録</a>
                 </div>
